@@ -55,11 +55,12 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 		log.info("NebulousEmsTranslator: Parsing metric model file: {}", metricModelPath);
 		JsonNode modelRoot;
 		try {
-			final File modelFile = Paths.get(metricModelPath).toFile();
+			final File modelFile = Paths.get(properties.getModelDir(), metricModelPath).toFile();
+			log.info("NebulousEmsTranslator: Actual metric model path: {}", modelFile);
 			final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 			modelRoot = mapper.readTree(modelFile);
 		} catch (IOException e) {
-			throw new NebulousEmsTranslationException("Error while parsing metric model YAML file", e);
+			throw new NebulousEmsTranslationException("Error while parsing metric model YAML file: "+metricModelPath, e);
 		}
 		log.info("NebulousEmsTranslator: Metric model root: {}", modelRoot);
 

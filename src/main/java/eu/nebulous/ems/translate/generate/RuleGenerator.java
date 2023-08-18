@@ -23,7 +23,7 @@ public class RuleGenerator implements InitializingBean {
     private final NebulousEmsTranslatorProperties properties;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
     }
 
     // ================================================================================================================
