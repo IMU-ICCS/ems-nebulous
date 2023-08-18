@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>eu.nebulous.ems</groupId>
+    <artifactId>ems-nebulous</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Nebulous-EMS translator and MVV service</name>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- EMS versions -->
+        <ems.version>7.0.0-SNAPSHOT</ems.version>
+
+        <!-- Spring Boot versions -->
+        <spring.version>6.0.11</spring.version>
+        <spring-boot.version>3.1.2</spring-boot.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
+
+        <!-- Misc versions -->
+        <hibernate-validator.version>8.0.0.Final</hibernate-validator.version>
+        <commons-collections4.version>4.4</commons-collections4.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Compile time dependencies - Will be provided by EMS at runtime -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.26</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring Boot dependencies - Will be provided by EMS -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>${spring-boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring-boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <version>${spring-boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- If omitted the EMS-4-Morphemic extension will not be used by EMS server -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-indexer</artifactId>
+            <version>${spring.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- EMS dependencies - At runtime they will be provided by EMS -->
+        <dependency>
+            <groupId>gr.iccs.imu.ems</groupId>
+            <artifactId>util</artifactId>
+            <version>${ems.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>gr.iccs.imu.ems</groupId>
+            <artifactId>broker-cep</artifactId>
+            <version>${ems.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>gr.iccs.imu.ems</groupId>
+            <artifactId>translator</artifactId>
+            <version>${ems.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>gr.iccs.imu.ems</groupId>
+            <artifactId>control-service</artifactId>
+            <version>${ems.version}</version>
+            <classifier>original</classifier>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-validator -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>${hibernate-validator.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${commons-collections4.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>remove-slf4j-files-from-jar-with-dependencies</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <jar destfile="${project.build.directory}/temp.jar">
+                                    <zipfileset src="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
+                                                excludes="org/slf4j/**" />
+                                </jar>
+                                <move file="${project.build.directory}/temp.jar"
+                                      tofile="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
+                                      force="true"/>
+                                <delete file="${project.build.directory}/temp-jar-with-dependencies.jar" />
+                                <!--XXX:TODO: Used during development -->
+                                <!--<copy file="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
+                                      todir="${project.basedir}/../tests/plugins/"
+                                      force="true"/>-->
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
