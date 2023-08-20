@@ -9,25 +9,35 @@
 package eu.nebulous.ems.translate.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 public class MetricModel {
-    private static final String HEADER_API_VERSION = "apiVersion";
-    private static final String HEADER_API_VERSION_VALUE = "apps/v1";
-    private static final String HEADER_KIND = "kind";
-    private static final String HEADER_KIND_VALUE = "MetricModel";
-    private static final String METADATA_SECTION = "metadata";
-    private static final String METADATA_MODEL_NAME = "name";
-    private static final String SPEC_SECTION = "spec";
-    private static final String COMPONENTS_SECTION = "components";
-    private static final String SCOPES_SECTION = "scopes";
+    static final String HEADER_API_VERSION = "apiVersion";
+    static final String HEADER_API_VERSION_VALUE = "apps/v1";
+    static final String HEADER_KIND = "kind";
+    static final String HEADER_KIND_VALUE = "MetricModel";
+    static final String METADATA_SECTION = "metadata";
+    static final String METADATA_MODEL_NAME = "name";
+    static final String SPEC_SECTION = "spec";
+    static final String COMPONENTS_SECTION = "components";
+    static final String SCOPES_SECTION = "scopes";
+
+    static final String REQUIREMENTS_SECTION = "requirements";
+    static final String SLO_SECTION = "slos";
+    static final String OPT_GOALS_SECTION = "optimisation-goals";
+    static final String METRICS_SECTION = "metrics";
 
     private final File modelFile;
     private final JsonNode modelRoot;
@@ -37,6 +47,23 @@ public class MetricModel {
             return modelRoot.get(METADATA_SECTION).get(METADATA_MODEL_NAME).asText();
         }
         return modelFile.getName();
+    }
+
+    public List<MetricModelNamedElement> getComponents() {
+        return getNamedList(COMPONENTS_SECTION);
+    }
+
+    public List<MetricModelNamedElement> getScopes() {
+        return getNamedList(SCOPES_SECTION);
+    }
+
+    private List<MetricModelNamedElement> getNamedList(@NonNull String section) {
+        if (modelRoot.hasNonNull(SPEC_SECTION) && modelRoot.get(SPEC_SECTION).hasNonNull(section)) {
+            return IteratorUtils.toList(modelRoot.get(SPEC_SECTION).get(section).elements())
+                    .stream().map(MetricModelNamedElement::new)
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     public void checkMetricModel() {
