@@ -8,9 +8,9 @@
 
 package eu.nebulous.ems.translate;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import eu.nebulous.ems.translate.model.MetricModel;
 import eu.nebulous.ems.translate.analyze.MetricModelAnalyzer;
 import eu.nebulous.ems.translate.generate.RuleGenerator;
 import eu.nebulous.ems.translate.transform.GraphTransformer;
@@ -52,19 +52,19 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 		}
 
 		log.info("NebulousEmsTranslator: Parsing metric model file: {}", metricModelPath);
-		JsonNode modelRoot;
+		MetricModel metricModel;
 		try {
 			final File modelFile = Paths.get(properties.getModelDir(), metricModelPath).toFile();
 			log.info("NebulousEmsTranslator: Actual metric model path: {}", modelFile);
 			final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-			modelRoot = mapper.readTree(modelFile);
+			metricModel = new MetricModel(modelFile, mapper.readTree(modelFile));
 		} catch (IOException e) {
 			throw new NebulousEmsTranslationException("Error while parsing metric model YAML file: "+metricModelPath, e);
 		}
-		log.info("NebulousEmsTranslator: Metric model root: {}", modelRoot);
+		log.info("NebulousEmsTranslator: Metric model root: {}", metricModel);
 
 		log.info("NebulousEmsTranslator: Translating metric model: {}", metricModelPath);
-		TranslationContext _TC = translate(modelRoot);
+		TranslationContext _TC = translate(metricModel);
 		log.info("NebulousEmsTranslator: Translating metric model completed: {}", metricModelPath);
 		return _TC;
 	}
@@ -72,9 +72,14 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 	// ================================================================================================================
 	// Private methods
 
-	private TranslationContext translate(@NonNull JsonNode metricModel) {
+	private TranslationContext translate(@NonNull MetricModel metricModel) {
 		log.debug("NebulousEmsTranslator.translate():  BEGIN: metric-model={}", metricModel);
-		String modelName = metricModel.get("modelName").asText();
+		String modelName = metricModel.getMetricModelName();
+
+		// Check metric model is (structurally) valid
+		log.debug("NebulousEmsTranslator.translate():  Checking Metric model validity...");
+		metricModel.checkMetricModel();
+		log.info("NebulousEmsTranslator.translate():  Metric model is valid");
 
 		// initialize data structures
 		TranslationContext _TC = new TranslationContext(modelName);
