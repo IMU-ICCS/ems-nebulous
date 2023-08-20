@@ -24,20 +24,38 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class MetricModel {
-    static final String HEADER_API_VERSION = "apiVersion";
-    static final String HEADER_API_VERSION_VALUE = "apps/v1";
-    static final String HEADER_KIND = "kind";
-    static final String HEADER_KIND_VALUE = "MetricModel";
-    static final String METADATA_SECTION = "metadata";
-    static final String METADATA_MODEL_NAME = "name";
-    static final String SPEC_SECTION = "spec";
-    static final String COMPONENTS_SECTION = "components";
-    static final String SCOPES_SECTION = "scopes";
+    public static final String HEADER_API_VERSION = "apiVersion";
+    public static final String HEADER_API_VERSION_VALUE = "apps/v1";
+    public static final String HEADER_KIND = "kind";
+    public static final String HEADER_KIND_VALUE = "MetricModel";
+    public static final String METADATA_SECTION = "metadata";
+    public static final String METADATA_MODEL_NAME = "name";
+    public static final String SPEC_SECTION = "spec";
+    public static final String COMPONENTS_SECTION = "components";
+    public static final String SCOPES_SECTION = "scopes";
+    public static final List<String> TOP_LEVEL_FIELDS = List.of(HEADER_API_VERSION, HEADER_KIND, METADATA_SECTION, SPEC_SECTION);
+    public static final List<String> SPEC_FIELDS = List.of(COMPONENTS_SECTION, SCOPES_SECTION);
 
-    static final String REQUIREMENTS_SECTION = "requirements";
-    static final String SLO_SECTION = "slos";
-    static final String OPT_GOALS_SECTION = "optimisation-goals";
-    static final String METRICS_SECTION = "metrics";
+    public static final String ENTRY_NAME = "name";
+    public static final String REQUIREMENTS_SECTION = "requirements";
+    public static final String SLO_SECTION = "slos";
+    public static final String OPT_GOALS_SECTION = "optimisation-goals";
+    public static final String METRICS_SECTION = "metrics";
+    public static final String FUNCTIONS_SECTION = "functions";
+
+    public static final String METRIC_TYPE = "type";
+    public static final String METRIC_FORMULA = "formula";
+    public static final String METRIC_SENSOR = "sensor";
+    public static final String METRIC_CURRENT_CONFIG = "current-config";
+    public static final String METRIC_VARIABLE = "variable";
+
+    public static final String METRIC_TEMPLATE = "template";
+    public static final String METRIC_TEMPLATE_TYPE = "type";
+    public static final String METRIC_TEMPLATE_RANGE = "range";
+    public static final String METRIC_TEMPLATE_VALUES = "values";
+
+    public static final String FUNCTION_EXPRESSION = "expression";
+    public static final String FUNCTION_ARGUMENTS = "arguments";
 
     private final File modelFile;
     private final JsonNode modelRoot;
@@ -47,6 +65,10 @@ public class MetricModel {
             return modelRoot.get(METADATA_SECTION).get(METADATA_MODEL_NAME).asText();
         }
         return modelFile.getName();
+    }
+
+    public MetricModelNamedElement getRoot() {
+        return new MetricModelNamedElement(modelRoot);
     }
 
     public List<MetricModelNamedElement> getComponents() {
@@ -69,6 +91,9 @@ public class MetricModel {
     public void checkMetricModel() {
         checkModelHeaders();
         checkSpec();
+
+        // Check for unknown top-level fields
+        checkForUnknownFields(null, modelRoot, TOP_LEVEL_FIELDS);
     }
 
     private void checkModelHeaders() {
@@ -91,6 +116,21 @@ public class MetricModel {
 
         checkComponentsSection();
         checkScopesSection();
+
+        // Check for unknown Spec-level fields
+        checkForUnknownFields(SPEC_SECTION, specNode, SPEC_FIELDS);
+    }
+
+    private void checkForUnknownFields(String name, JsonNode element, List<String> allowedFields) {
+        List<String> unknownFields = IteratorUtils.toList(element.fieldNames());
+        unknownFields.removeAll(allowedFields);
+        if (!unknownFields.isEmpty()) {
+            if (StringUtils.isNotBlank(name))
+                log.warn("MetricModel: Node '{}' contains unknown fields: {}", name, unknownFields);
+            else
+                log.warn("MetricModel: Model '{}' contains unknown fields: {}", modelFile.getName(), unknownFields);
+            //throw new MetricModelException(String.format("MetricModel: Model '%s' contains unknown fields: %s", modelFile.getName(), unknownFields));
+        }
     }
 
     private void checkComponentsSection() {
