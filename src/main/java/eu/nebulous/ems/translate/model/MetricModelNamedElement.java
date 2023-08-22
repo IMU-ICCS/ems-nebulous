@@ -38,6 +38,8 @@ public class MetricModelNamedElement {
         return new MetricModelNamedElement( element.get(childNodeName) );
     }
 
+    // ------------------------------------------------------------------------
+
     public List<MetricModelNamedElement> getArrayAsList(@NonNull String fieldName) {
         if (element.hasNonNull(fieldName) && element.get(fieldName).isArray()) {
             JsonNode arr = element.withArray(fieldName);
@@ -74,30 +76,41 @@ public class MetricModelNamedElement {
         throw new MetricModelException("Field '"+fieldName+"' does not exist or is null or is not an object, in element: "+element);
     }
 
+    // ------------------------------------------------------------------------
+
     public List<MetricModelNamedElement> getSLOs() {
+        log.trace("    MetricModelNamedElement.getSLOs(): BEGIN");
         return getRequirements(MetricModel.SLO_SECTION);
     }
 
     public List<MetricModelNamedElement> getOptimisationGoals() {
+        log.trace("    MetricModelNamedElement.getOptimisationGoals(): BEGIN");
         return getRequirements(MetricModel.OPT_GOALS_SECTION);
     }
 
     private List<MetricModelNamedElement> getRequirements() {
+        log.trace("    MetricModelNamedElement.getRequirements(): BEGIN");
         LinkedList<MetricModelNamedElement> list = new LinkedList<>();
         list.addAll(getSLOs());
         list.addAll(getOptimisationGoals());
+        log.trace("    MetricModelNamedElement.getRequirements(): END: {}", list);
         return list;
     }
 
     private List<MetricModelNamedElement> getRequirements(String section) {
-        if (element.hasNonNull(MetricModel.REQUIREMENTS_SECTION) && element.hasNonNull(section)) {
+        log.trace("    MetricModelNamedElement.getRequirements(): BEGIN: section={}", section);
+        if (element.hasNonNull(MetricModel.REQUIREMENTS_SECTION) && element.get(MetricModel.REQUIREMENTS_SECTION).hasNonNull(section)) {
             JsonNode node = element.get(MetricModel.REQUIREMENTS_SECTION).get(section);
+            log.trace("    MetricModelNamedElement.getRequirements(): END: node={}", node);
             return IteratorUtils.toList(node.elements()).stream()
                     .map(MetricModelNamedElement::new)
                     .collect(Collectors.toList());
         }
+        log.trace("    MetricModelNamedElement.getRequirements(): END: node=[]");
         return Collections.emptyList();
     }
+
+    // ------------------------------------------------------------------------
 
     public List<MetricModelNamedElement> getMetrics() {
         if (element.hasNonNull(MetricModel.METRICS_SECTION)) {
@@ -118,6 +131,8 @@ public class MetricModelNamedElement {
         }
         return Collections.emptyList();
     }
+
+    // ------------------------------------------------------------------------
 
     public METRIC_TYPE getMetricType() {
         // Get metric type from 'type' field, if available
@@ -143,16 +158,22 @@ public class MetricModelNamedElement {
     }
 
     public boolean isMetric() {
-        return getMetricType()!=METRIC_TYPE.METRIC_VARIABLE;
+        return getMetricType() != METRIC_TYPE.METRIC_VARIABLE;
     }
 
     public boolean isMetricVariable() {
-        return getMetricType()==METRIC_TYPE.METRIC_VARIABLE;
+        return getMetricType() == METRIC_TYPE.METRIC_VARIABLE;
     }
 
     public boolean isCurrentConfig() {
         return Boolean.parseBoolean( getFieldValue(MetricModel.METRIC_CURRENT_CONFIG, "false") );
     }
+
+    public String getFormula() {
+        return getFieldValue(MetricModel.METRIC_FORMULA, null);
+    }
+
+    // ------------------------------------------------------------------------
 
     public String getFieldValue(String fieldName, String defaultValue) {
         String result = getFieldValue(fieldName);
