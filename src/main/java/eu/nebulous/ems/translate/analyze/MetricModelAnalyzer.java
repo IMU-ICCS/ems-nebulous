@@ -21,9 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,45 +36,47 @@ public class MetricModelAnalyzer {
     // ================================================================================================================
     // Model analysis methods
 
-    protected List<MetricModelNamedElement> requirements;
-    protected List<MetricModelNamedElement> metrics;
-
     public void analyzeModel(@NonNull TranslationContext _TC, @NonNull MetricModel metricModel) {
         String modelName = metricModel.getMetricModelName();
         log.debug("MetricModelAnalyzer.analyzeModel(): Analyzing metric model: {}", modelName);
 
+        // Collect metric model components and scopes
         List<MetricModelNamedElement> entries = new ArrayList<>();
         entries.addAll(metricModel.getComponents());
         entries.addAll(metricModel.getScopes());
         Map<String, MetricModelNamedElement> entriesMap = entries.stream()
                 .collect(Collectors.toMap(MetricModelNamedElement::getName, x->x));
 
-        requirements = new ArrayList<>();
-        metrics = new ArrayList<>();
+        List<MetricModelNamedElement> requirements = new ArrayList<>();
+        List<MetricModelNamedElement> metrics = new ArrayList<>();
 
-        // Extract Metrics
-        entries.forEach(entry -> collectMetrics(entry, _TC));
+        // Collect Requirements (SLOs, and Opt.Goals))
+        entries.forEach(entry -> collectRequirements(entry, _TC, requirements));
+        log.debug("MetricModelAnalyzer.analyzeModel(): Collected requirements: {}", requirements);
+        log.debug("MetricModelAnalyzer.analyzeModel(): Populated SLO set: {}", _TC.getSLO());
+
+        // Collect Metrics
+        entries.forEach(entry -> collectMetrics(entry, _TC, metrics));
+        log.debug("MetricModelAnalyzer.analyzeModel(): Collected metrics: {}", metrics);
         log.debug("MetricModelAnalyzer.analyzeModel(): Populated Metric-to-Metric Context map: {}", _TC.getM2MC());
 
         // Extract MVVs (i.e. constants for Metric Model, variables for CP model)
         entries.forEach(entry -> collectMVVs(entry, _TC, entriesMap));
         log.debug("MetricModelAnalyzer.analyzeModel(): Populated MVV and Composite Metric Variable sets:  mvv={}, composite-metric-vars={}", _TC.getMVV(), _TC.getCompositeMetricVariables());
 
-        // extract Functions
+        // Extract Functions
         entries.forEach(entry -> collectFunctions(entry, _TC));
         log.debug("MetricModelAnalyzer.analyzeModel(): Collected functions: {}", _TC.getFUNC());
 
         // -- scalability rules --
         // _analyzeScalabilityRules
 
-        // SLOs
-        // Opt. Goals
         // Metric Variables
+        entries.forEach(entry -> collectMetricVariables(entry, _TC, metrics));
+        log.debug("MetricModelAnalyzer.analyzeModel(): Metric variables: composite-metric-vars={}, raw-metric-vars=** Not displayed **", _TC.getCMVar());
+
         // Metric Variables Constraints
         // _inferGroupings
-
-        entries.forEach(entry -> processRequirements(entry, _TC, requirements));
-        entries.forEach(entry -> processMetrics(entry, _TC, metrics));
 
         /*String leafGrouping = properties.getLeafNodeGrouping();
 
@@ -129,9 +129,33 @@ public class MetricModelAnalyzer {
         log.debug("MetricModelAnalyzer.analyzeModel(): Analyzing Camel model completed: {}", modelName);
     }
 
+    private void collectRequirements(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> requirements) {
+        log.trace("MetricModelAnalyzer.collectRequirements(): BEGIN: entry={}", entry);
+        List<MetricModelNamedElement> slos = entry.getSLOs();
+        List<MetricModelNamedElement> ogs = entry.getOptimisationGoals();
+        log.trace("MetricModelAnalyzer.collectRequirements(): SLO's: {}", slos);
+        log.trace("MetricModelAnalyzer.collectRequirements():  OG's: {}", ogs);
+        log.trace("MetricModelAnalyzer.collectRequirements():  requirements-size BEFORE: {}", requirements.size());
+        requirements.addAll(slos);
+        requirements.addAll(ogs);
+        log.trace("MetricModelAnalyzer.collectRequirements():   requirements-size AFTER: {}", requirements.size());
+
+        slos.forEach(slo -> {
+            log.trace("MetricModelAnalyzer.collectRequirements(): slos.forEach: slo={}", slo);
+            ServiceLevelObjective tcSlo = ServiceLevelObjective.builder()
+                    .name(slo.getName())
+                    .object(slo)
+                    //.constraint(....)
+                    .build();
+            log.trace("MetricModelAnalyzer.collectRequirements(): slos.forEach: tc-slo={}", tcSlo);
+            _TC.addSLO(tcSlo);
+        });
+    }
+
     // _buildMetricToMetricContextMap
-    private void collectMetrics(MetricModelNamedElement entry, TranslationContext _TC) {
+    private void collectMetrics(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> metrics) {
         entry.getMetrics().forEach(metric -> {
+            metrics.add(metric);
             _TC.addMetricMetricContextPair(
                     Metric.builder().name(entry.getName()).object(entry).build(),
                     MetricContext.builder().name(entry.getName()).object(entry).build());
@@ -160,6 +184,8 @@ public class MetricModelAnalyzer {
                 throw new MetricModelException("Current-config metric variable's matching variable does not exist: "+entry);
             if (matchingVarElement.getMetricType()!=MetricModelNamedElement.METRIC_TYPE.METRIC_VARIABLE)
                 throw new MetricModelException("Current-config metric variable's matching variable is not Metric Variable: "+entry);
+            if (StringUtils.isBlank(matchingVarElement.getName()))
+                throw new MetricModelException("Current-config metric variable's matching variable has blank name: "+entry);
             if (matchingVarElement.isCurrentConfig())
                 throw new MetricModelException("Current-config metric variable's matching variable is also Current-config: "+entry);
             if (! entry.getType().equals( matchingVarElement.getType() ))
@@ -171,10 +197,8 @@ public class MetricModelAnalyzer {
                     .object(matchingVarElement)
                     .build();
             log.trace("    MetricVariable: matchingMv={}", matchingMv);
-            if (matchingMv!=null) {
-                log.trace("    MetricVariable: matchingMv={}, mv={}", matchingMv.getName(), entry.getName());
-                _TC.getCompositeMetricVariables().put(matchingMv.getName(), entry.getName());
-            }
+            log.trace("    MetricVariable: matchingMv={}, mv={}", matchingMv.getName(), entry.getName());
+            _TC.getCompositeMetricVariables().put(matchingMv.getName(), entry.getName());
         }
     }
 
@@ -196,20 +220,83 @@ public class MetricModelAnalyzer {
         });
     }
 
+    // _analyzeMetricVariables
+    private void collectMetricVariables(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> metrics) {
+        entry.getMetrics().stream()
+                .filter(MetricModelNamedElement::isMetricVariable)
+                .filter(MetricModelNamedElement::isCurrentConfig)   //XXX:TODO: ????
+                .forEach(metricVariable -> {
+                    // extract metric variable information
+                    String formula = metricVariable.getFormula();
+                    List<Metric> componentMetrics = extractFormulaMetrics(formula, metrics);
+                    log.trace("    Processing Metric Variable: {}", metricVariable);
+
+                    MetricVariable tcMv = MetricVariable.builder().build();
+                    if (! componentMetrics.isEmpty()) {
+                        // add metric variable to DAG as top-level node
+                        _TC.getDAG().addTopLevelNode(tcMv); //XXX:TODO: Check .setGrouping(getGrouping(tcMv));
+                    } else {
+                        // if MVV just register it in _TC
+                        _TC.addMVV(tcMv);       //XXX:TODO: Duplicate???
+                    }
+
+                    // for every component metric
+                    componentMetrics.forEach(m -> {
+                        // get metric context or variable of current metric
+                        Set<MetricContext> ctxSet = _TC.getM2MC().get(m);
+                        int ctxSize = (ctxSet == null ? 0 : ctxSet.size());
+                        boolean isMVV = _TC.getMVV().contains(m.getName());
+
+                        if (ctxSize == 0 && !isMVV) {
+                            log.error("    - No metric context or MVV found for metric '{}' used in metric variable '{}' : ctx-set={}, is-MVV={}",
+                                    m.getName(), metricVariable.getName(), ctxSet!=null ? ctxSet.stream().map(NamedElement::getName).toList() : null, isMVV);
+                            log.error("      _TC.M2MC: keys: {}", _TC.getM2MC().keySet().stream().map(NamedElement::getName).toList());
+                            log.error("      _TC.M2MC: values: {}", _TC.getM2MC().values());
+                            log.error("      _TC.MVV: {}", _TC.getMVV());
+                            throw new MetricModelException(String.format("No metric context or MVV found for metric '%s' used in the metric variable '%s'",
+                                    m.getName(), metricVariable.getName()));
+                        } else if (ctxSize > 0 && isMVV || ctxSize > 1) {
+                            List<String> ctxNames = ctxSet.stream().map(NamedElement::getName).collect(Collectors.toList());
+                            log.error("    - More than one metric contexts and variables were found for metric '{}' used in the metric variable '{}' : ctx-names={}, is-MVV={}",
+                                    m.getName(), metricVariable.getName(), ctxNames, isMVV);
+                            log.error("      _TC.M2MC: keys: {}", _TC.getM2MC().keySet().stream().map(NamedElement::getName).toList());
+                            log.error("      _TC.M2MC: values: {}", _TC.getM2MC().values());
+                            log.error("      _TC.MVV: {}", _TC.getMVV());
+                            throw new MetricModelException(String.format("More than one metric contexts or MVVs were found for metric '%s' used in the metric variable '%s': ctx-names=%s, is-MVV=%b",
+                                    m.getName(), metricVariable.getName(), ctxNames, isMVV));
+                        } else if (ctxSize == 1) {
+                            MetricContext ctx = ctxSet.iterator().next();
+
+                            // update DAG and decompose metrics
+                            if (ctx != null) {
+                                // add CTX to DAG
+                                _TC.getDAG().addNode(tcMv, ctx);    //XXX:TODO: Check .setGrouping(getGrouping(ctx));
+
+                                // decompose metric context
+                      //          _decomposeMetricContext(_TC, ctx);
+                            } else {
+                                //log.error("  - Metric context for metric '{}' used in the metric variable '{}' is null", m.getName(), mv.getName());
+                                throw new MetricModelException(String.format("Metric context for metric '%s' used in the metric variable '%s' is null", m.getName(), metricVariable.getName()));
+                            }
+
+                        } else {
+                            log.debug("  Component metric is MVV. No DAG node will be added: mvv={}, variable={}", m.getName(), metricVariable.getName());
+                        }
+                    });
 
 
-
-
-
-
-    private void processRequirements(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> requirements) {
-        requirements.addAll(entry.getSLOs());
-        requirements.addAll(entry.getOptimisationGoals());
+                });
     }
 
-    private void processMetrics(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> metrics) {
-
+    private List<Metric> extractFormulaMetrics(String formula, List<MetricModelNamedElement> metrics) {
+        //XXX:TODO: ++++++++++++++++++
+        return Collections.emptyList();
     }
+
+
+
+
+
 
     /*private void _buildMetricToMetricContextMap(CamelTranslationContext _TC, CamelModel camelModel) {
         // extract metric models
