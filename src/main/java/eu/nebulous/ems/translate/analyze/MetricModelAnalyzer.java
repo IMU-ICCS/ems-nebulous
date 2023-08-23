@@ -89,7 +89,7 @@ public class MetricModelAnalyzer {
 
         // building MVV set
         _buildMetricVariableSets(_TC, metricModel);
-        log.debug("MetricModelAnalyzer.analyzeModel():  Populated MVV and Composite Metric Variable sets:  mvv={}, composite-metric-vars={}", _TC.getMVV(), _TC.getCompositeMetricVariables());
+        log.debug("MetricModelAnalyzer.analyzeModel():  Populated MVV and Composite Metric Variable sets:  mvv={}, composite-metric-vars={}", _TC.getMVV(), _TC.getMvvCP());
 
         // extract Functions
         _extractFunctions(_TC, metricModel);
@@ -109,7 +109,7 @@ public class MetricModelAnalyzer {
 
         // analyze metric variables
 		_analyzeMetricVariables(_TC, metricModel);
-        log.debug("MetricModelAnalyzer.analyzeModel(): Metric variables: composite-metric-vars={}, raw-metric-vars=** Not displayed **", _TC.getCMVar());
+        log.debug("MetricModelAnalyzer.analyzeModel(): Metric variables: composite-metric-vars={}, raw-metric-vars=** Not displayed **", _TC.getCompositeMetricVariableNames());
 
         // analyze constraints
 //		_analyzeConstraints(_TC, metricModel);
@@ -374,7 +374,7 @@ public class MetricModelAnalyzer {
                 log.trace("  MetricVariable: _findMatchingVar: matchingMv = {}", matchingMv);
                 if (matchingMv!=null) {
                     log.trace("  MetricVariable: matchingMv={}, mv={}", matchingMv.getName(), mv.getName());
-                    _TC.getCompositeMetricVariables().put(matchingMv.getName(), mv.getName());
+                    _TC.getMvvCP().put(matchingMv.getName(), mv.getName());
                 }
             });
         });
@@ -586,7 +586,7 @@ public class MetricModelAnalyzer {
         log.debug("    Formula metrics: {}", getSetElementNames(formulaMetrics));
 
         // find formula component metric variables
-        Set<Metric> formulaVars = _TC.getCMVar_1().stream()
+        Set<Metric> formulaVars = _TC.getCompositeMetricVariables().stream()
                 .filter(mv -> argNames.contains(mv.getName()))
                 .map(m -> m.getObject(Metric.class))
                 .collect(Collectors.toSet());
@@ -900,7 +900,7 @@ public class MetricModelAnalyzer {
         // cache constraint
         _TC.addMetricVariableConstraint(constraint);
 
-        log.trace("  _decomposeMetricVariableConstraint(): CMVAR: {}", _TC.getCMVar());
+        log.trace("  _decomposeMetricVariableConstraint(): CMVAR: {}", _TC.getCompositeMetricVariableNames());
         log.trace("  _decomposeMetricVariableConstraint(): MVV:   {}", _TC.getMVV());
         _decomposeMetricVariable(_TC, mvar);
 
@@ -984,7 +984,7 @@ public class MetricModelAnalyzer {
             // check if it is metric variable
             if (m instanceof MetricVariable) {
                 // check if it is a composite metric variable
-                if (_TC.getCMVar().contains(m.getName())) {
+                if (_TC.getCompositeMetricVariableNames().contains(m.getName())) {
                     hasNonMVVComponents = true;
 
                     // add metric variable 'm' as mvar's child and decompose it
@@ -1518,7 +1518,7 @@ public class MetricModelAnalyzer {
             // check if it is metric variable
             if (MetricVariable.class.isAssignableFrom(m.getClass())) {
                 // check if it is a composite metric variable
-                if (_TC.getCMVar().contains(m.getName())) {
+                if (_TC.getCompositeMetricVariableNames().contains(m.getName())) {
                     if (log.isTraceEnabled()) {
                         log.trace("    _checkFormulaAndComponents(): Formula composite component metric variable found: formula={}, metric-variable={}", formula, m.getName());
                     }
