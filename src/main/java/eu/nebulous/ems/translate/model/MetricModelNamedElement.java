@@ -9,6 +9,10 @@
 package eu.nebulous.ems.translate.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import gr.iccs.imu.ems.translate.model.CompositeMetric;
+import gr.iccs.imu.ems.translate.model.Metric;
+import gr.iccs.imu.ems.translate.model.MetricVariable;
+import gr.iccs.imu.ems.translate.model.RawMetric;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
@@ -79,34 +83,34 @@ public class MetricModelNamedElement {
     // ------------------------------------------------------------------------
 
     public List<MetricModelNamedElement> getSLOs() {
-        log.trace("    MetricModelNamedElement.getSLOs(): BEGIN");
+        log.trace("      MetricModelNamedElement.getSLOs(): BEGIN");
         return getRequirements(MetricModel.SLO_SECTION);
     }
 
     public List<MetricModelNamedElement> getOptimisationGoals() {
-        log.trace("    MetricModelNamedElement.getOptimisationGoals(): BEGIN");
+        log.trace("      MetricModelNamedElement.getOptimisationGoals(): BEGIN");
         return getRequirements(MetricModel.OPT_GOALS_SECTION);
     }
 
     private List<MetricModelNamedElement> getRequirements() {
-        log.trace("    MetricModelNamedElement.getRequirements(): BEGIN");
+        log.trace("      MetricModelNamedElement.getRequirements(): BEGIN");
         LinkedList<MetricModelNamedElement> list = new LinkedList<>();
         list.addAll(getSLOs());
         list.addAll(getOptimisationGoals());
-        log.trace("    MetricModelNamedElement.getRequirements(): END: {}", list);
+        log.trace("      MetricModelNamedElement.getRequirements(): END: {}", list);
         return list;
     }
 
     private List<MetricModelNamedElement> getRequirements(String section) {
-        log.trace("    MetricModelNamedElement.getRequirements(): BEGIN: section={}", section);
+        log.trace("      MetricModelNamedElement.getRequirements(): BEGIN: section={}", section);
         if (element.hasNonNull(MetricModel.REQUIREMENTS_SECTION) && element.get(MetricModel.REQUIREMENTS_SECTION).hasNonNull(section)) {
             JsonNode node = element.get(MetricModel.REQUIREMENTS_SECTION).get(section);
-            log.trace("    MetricModelNamedElement.getRequirements(): END: node={}", node);
+            log.trace("      MetricModelNamedElement.getRequirements(): END: node={}", node);
             return IteratorUtils.toList(node.elements()).stream()
                     .map(MetricModelNamedElement::new)
                     .collect(Collectors.toList());
         }
-        log.trace("    MetricModelNamedElement.getRequirements(): END: node=[]");
+        log.trace("      MetricModelNamedElement.getRequirements(): END: node=[]");
         return Collections.emptyList();
     }
 
@@ -181,16 +185,13 @@ public class MetricModelNamedElement {
     }
 
     public String getFieldValue(String fieldName) {
+        boolean nonNull = element.hasNonNull(fieldName);
+        String text = nonNull ? element.get(fieldName).asText() : null;
         if (log.isTraceEnabled()) {
-            boolean a, b = false;
-            log.trace("    getFieldValue( {} ): has-non-null={}, is-text={}, text={}", fieldName,
-                    a = element.hasNonNull(fieldName),
-                    a ? b = element.get(fieldName).isTextual() : "n/a",
-                    (a && b) ? element.get(fieldName).asText() : "n/a");
+            String jsonType = nonNull ? element.get(fieldName).getNodeType().name() : null;
+            log.trace("        getFieldValue( {} ): has-non-null={}, field-json-type={}, text={}", fieldName, nonNull, jsonType, text);
         }
-        if (element.hasNonNull(fieldName) && element.get(fieldName).isTextual())
-            return element.get(fieldName).asText();
-        return null;
+        return text;
     }
 
     public String getType() {
@@ -208,5 +209,23 @@ public class MetricModelNamedElement {
             }
         }
         return Double.class.getSimpleName();
+    }
+
+    public Metric toMetric() {
+        METRIC_TYPE type;
+        Metric m = switch (type = getMetricType()) {
+            case composite -> CompositeMetric.builder().build();
+            case raw -> RawMetric.builder().build();
+            case variable -> MetricVariable.builder().build();
+            default -> throw new MetricModelException("Unknown metric type: "+type);
+        };
+        m.setName(getName());
+        m.setObject(element);
+        return m;
+    }
+
+    public MetricVariable toMetricVariable() {
+        Metric m = toMetric();
+        return (MetricVariable) m;
     }
 }
