@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class MetricModelNamedElement {
-    public enum METRIC_TYPE { COMPOSITE_METRIC, RAW_METRIC, METRIC_VARIABLE }
+    public enum METRIC_TYPE { composite, raw, variable }
 
     @Getter
     @NonNull private final JsonNode element;
@@ -142,15 +142,15 @@ public class MetricModelNamedElement {
 
         // Infer metric type from other fields
         if (getFieldValue(MetricModel.METRIC_FORMULA)!=null)
-            return METRIC_TYPE.COMPOSITE_METRIC;
+            return METRIC_TYPE.composite;
         if (getFieldValue(MetricModel.METRIC_SENSOR)!=null)
-            return METRIC_TYPE.RAW_METRIC;
-        return METRIC_TYPE.METRIC_VARIABLE;
+            return METRIC_TYPE.raw;
+        return METRIC_TYPE.variable;
     }
 
     public boolean isRaw() {
-        if (getMetricType()==METRIC_TYPE.RAW_METRIC) return true;
-        return getMetricType() == METRIC_TYPE.METRIC_VARIABLE && getFieldValue(MetricModel.METRIC_FORMULA) == null;
+        if (getMetricType()==METRIC_TYPE.raw) return true;
+        return getMetricType() == METRIC_TYPE.variable && getFieldValue(MetricModel.METRIC_FORMULA) == null;
     }
 
     public boolean isComposite() {
@@ -158,11 +158,11 @@ public class MetricModelNamedElement {
     }
 
     public boolean isMetric() {
-        return getMetricType() != METRIC_TYPE.METRIC_VARIABLE;
+        return getMetricType() != METRIC_TYPE.variable;
     }
 
     public boolean isMetricVariable() {
-        return getMetricType() == METRIC_TYPE.METRIC_VARIABLE;
+        return getMetricType() == METRIC_TYPE.variable;
     }
 
     public boolean isCurrentConfig() {

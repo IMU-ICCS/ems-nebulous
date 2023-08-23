@@ -182,7 +182,7 @@ public class MetricModelAnalyzer {
             MetricModelNamedElement matchingVarElement = entriesMap.get(matchingVarName);
             if (matchingVarElement==null)
                 throw new MetricModelException("Current-config metric variable's matching variable does not exist: "+entry);
-            if (matchingVarElement.getMetricType()!=MetricModelNamedElement.METRIC_TYPE.METRIC_VARIABLE)
+            if (matchingVarElement.getMetricType()!=MetricModelNamedElement.METRIC_TYPE.variable)
                 throw new MetricModelException("Current-config metric variable's matching variable is not Metric Variable: "+entry);
             if (StringUtils.isBlank(matchingVarElement.getName()))
                 throw new MetricModelException("Current-config metric variable's matching variable has blank name: "+entry);
