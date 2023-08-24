@@ -40,6 +40,7 @@ public class MetricModel {
     public static final String REQUIREMENTS_SECTION = "requirements";
     public static final String SLO_SECTION = "slos";
     public static final String OPT_GOALS_SECTION = "optimisation-goals";
+    public static final String CONSTRAINTS_SECTION = "constraints";
     public static final String METRICS_SECTION = "metrics";
     public static final String FUNCTIONS_SECTION = "functions";
 
@@ -54,11 +55,15 @@ public class MetricModel {
     public static final String METRIC_TEMPLATE_RANGE = "range";
     public static final String METRIC_TEMPLATE_VALUES = "values";
 
+    public static final String CONSTRAINT_TYPE = "type";
+    public static final String CONSTRAINT_EXPRESSION = "expression";
+
     public static final String FUNCTION_EXPRESSION = "expression";
     public static final String FUNCTION_ARGUMENTS = "arguments";
 
     private final File modelFile;
     private final JsonNode modelRoot;
+    private MetricModelNamedElement modelRootElement;
 
     public String getMetricModelName() {
         if (modelRoot.hasNonNull(METADATA_SECTION) && modelRoot.hasNonNull(METADATA_MODEL_NAME)) {
@@ -68,7 +73,9 @@ public class MetricModel {
     }
 
     public MetricModelNamedElement getRoot() {
-        return new MetricModelNamedElement(modelRoot);
+        if (modelRootElement==null)
+            modelRootElement = new MetricModelNamedElement(modelRoot);
+        return modelRootElement;
     }
 
     public List<MetricModelNamedElement> getComponents() {
@@ -82,7 +89,7 @@ public class MetricModel {
     private List<MetricModelNamedElement> getNamedList(@NonNull String section) {
         if (modelRoot.hasNonNull(SPEC_SECTION) && modelRoot.get(SPEC_SECTION).hasNonNull(section)) {
             return IteratorUtils.toList(modelRoot.get(SPEC_SECTION).get(section).elements())
-                    .stream().map(MetricModelNamedElement::new)
+                    .stream().map(e -> new MetricModelNamedElement(e, section, getRoot()))
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();

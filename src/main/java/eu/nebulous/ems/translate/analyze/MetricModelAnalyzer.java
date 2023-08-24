@@ -49,6 +49,7 @@ public class MetricModelAnalyzer {
                 .collect(Collectors.toMap(MetricModelNamedElement::getName, x->x));
 
         List<MetricModelNamedElement> requirements = new ArrayList<>();
+        List<MetricModelNamedElement> constraints = new ArrayList<>();
         List<MetricModelNamedElement> metrics = new ArrayList<>();
 
         // Collect Requirements (SLOs, and Opt.Goals))
@@ -70,6 +71,9 @@ public class MetricModelAnalyzer {
         ));
         log.debug("MetricModelAnalyzer.analyzeModel():   Name-to-metrics map: {}", metricsMap);
 
+        // Collect Scalability rules
+        // _analyzeScalabilityRules
+
         // Collect Functions
         log.debug("MetricModelAnalyzer.analyzeModel():   Collecting functions...");
         entries.forEach(entry -> collectFunctions(entry, _TC));
@@ -87,11 +91,14 @@ public class MetricModelAnalyzer {
         log.debug("MetricModelAnalyzer.analyzeModel():   Collected Metric variables: composite-metric-vars={}, raw-metric-vars={}",
                 _TC.getCompositeMetricVariableNames(), _TC.getRawMetricVariableNames());
 
-        // -- scalability rules --
-        // _analyzeScalabilityRules
+        // Metric Variable constraints
+        log.debug("MetricModelAnalyzer.analyzeModel():   Collecting Metric variable constraints...");
+        entries.forEach(entry -> collectMetricVariableConstraint(entry, _TC, constraints, metricsMap));
+        log.debug("MetricModelAnalyzer.analyzeModel():   Collected Metric variable constraints: {}", constraints);
 
-        // Metric Variables Constraints
+
         // _inferGroupings
+
 
         /*String leafGrouping = properties.getLeafNodeGrouping();
 
@@ -411,6 +418,24 @@ public class MetricModelAnalyzer {
         log.trace("      extractFormulaMetrics(): Formula arguments: formula={}, arguments={}, component-metric={}", formula, argNames, componentMetrics);
 
         return componentMetrics;
+    }
+
+    // _analyzeMetricVariableConstraints
+    private void collectMetricVariableConstraint(MetricModelNamedElement entry, TranslationContext _TC, List<MetricModelNamedElement> constraints, Map<String, MetricModelNamedElement> metricsMap) {
+        log.trace("      collectMetricVariableConstraint(): BEGIN: entry={}", entry);
+        entry.getConstraints().stream()
+                .peek(c -> log.trace("      -------------------------------->: name={}, elem={}", c.getName(), c))
+                .peek(c -> log.trace("                                   --->: section={}, parent={}", c.getSection(), c.getParent()))
+                .peek(c -> log.trace("                                   --->: json-node={}", c.getElement()))
+                .filter(MetricModelNamedElement::isConstraint)
+                .peek(c -> log.trace("      collectMetricVariableConstraint(): Constraint {} is: {}", c.getName(), c.getConstraintType()))
+                .peek(c -> log.trace("      collectMetricVariableConstraint():     expr={}", c.getConstraintExpression()))
+                .filter(m -> m.getConstraintType()==MetricModelNamedElement.CONSTRAINT_TYPE.metric)
+                .forEach(constraint -> {
+                    List<MetricModelNamedElement> expressionArgs = extractFormulaMetrics(constraint.getConstraintExpression(), _TC, metricsMap);
+                    log.trace("      collectMetricVariableConstraint(): Metric constraint expression arguments: {}", expressionArgs);
+                    constraints.add(constraint);
+                });
     }
 
 
