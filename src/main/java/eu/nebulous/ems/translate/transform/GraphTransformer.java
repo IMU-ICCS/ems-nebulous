@@ -8,7 +8,6 @@
 
 package eu.nebulous.ems.translate.transform;
 
-import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import gr.iccs.imu.ems.translate.Grouping;
 import gr.iccs.imu.ems.translate.dag.DAG;
 import gr.iccs.imu.ems.translate.dag.DAGNode;
@@ -16,9 +15,9 @@ import gr.iccs.imu.ems.translate.model.Metric;
 import gr.iccs.imu.ems.translate.model.MetricContext;
 import gr.iccs.imu.ems.translate.model.MetricVariable;
 import gr.iccs.imu.ems.translate.model.NamedElement;
+import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -64,7 +63,7 @@ public class GraphTransformer {
 
         // check if this node is MVV (i.e. has no child MVV's and is Metric Variable)
         if (node.getElement() != null) {
-            if (CollectionUtils.isEmpty(children)) {
+            if (children==null || children.isEmpty()) {
                 if (node.getElement() instanceof MetricVariable) {
                     // remove from DAG
                     log.debug("GraphTransformer.removeMVV():  Node is MVV: node={}", node);
