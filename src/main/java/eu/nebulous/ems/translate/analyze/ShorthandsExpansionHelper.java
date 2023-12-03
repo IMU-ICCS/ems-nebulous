@@ -57,7 +57,7 @@ public class ShorthandsExpansionHelper {
                 .filter(item -> JsonPath.read(item, "$.constraint") instanceof String)
                 .peek(this::expandConstraint)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Constraints expanded: {}", expandedConstraints);
+        log.debug("ShorthandsExpansionHelper: Constraints expanded: {}", expandedConstraints);
 
         // ----- Expand Metric windows -----
         List<Object> expandedWindows = asList(ctx
@@ -65,14 +65,14 @@ public class ShorthandsExpansionHelper {
                 .filter(item -> JsonPath.read(item, "$.window") instanceof String)
                 .peek(this::expandWindow)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Windows expanded: {}", expandedWindows);
+        log.debug("ShorthandsExpansionHelper: Windows expanded: {}", expandedWindows);
 
         List<Object> expandedWindowSizes = asList(ctx
                 .read("$.spec.*.*.metrics.*.window[?(@.size)]", List.class)).stream()
                 .filter(item -> JsonPath.read(item, "$.size") instanceof String)
                 .peek(this::expandWindowSize)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Windows sizes expanded: {}", expandedWindowSizes);
+        log.debug("ShorthandsExpansionHelper: Windows sizes expanded: {}", expandedWindowSizes);
 
         // ----- Expand Metric outputs -----
         List<Object> expandedOutputs = asList(ctx
@@ -80,14 +80,14 @@ public class ShorthandsExpansionHelper {
                 .filter(item -> JsonPath.read(item, "$.output") instanceof String)
                 .peek(this::expandOutput)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Outputs expanded: {}", expandedOutputs);
+        log.debug("ShorthandsExpansionHelper: Outputs expanded: {}", expandedOutputs);
 
         List<Object> expandedOutputSchedules = asList(ctx
                 .read("$.spec.*.*.metrics.*.output[?(@.schedule)]", List.class)).stream()
                 .filter(item -> JsonPath.read(item, "$.schedule") instanceof String)
                 .peek(this::expandOutputSchedule)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Output schedules expanded: {}", expandedOutputSchedules);
+        log.debug("ShorthandsExpansionHelper: Output schedules expanded: {}", expandedOutputSchedules);
 
         // ----- Expand Metric sensors -----
         List<Object> expandedSensors = asList(ctx
@@ -95,7 +95,7 @@ public class ShorthandsExpansionHelper {
                 .filter(item -> JsonPath.read(item, "$.sensor") instanceof String)
                 .peek(this::expandSensor)
                 .toList();
-        log.debug("MetricModelAnalyzer.analyzeModel(): Sensors expanded: {}", expandedSensors);
+        log.debug("ShorthandsExpansionHelper: Sensors expanded: {}", expandedSensors);
     }
 
     private void expandWindow(Object spec) {

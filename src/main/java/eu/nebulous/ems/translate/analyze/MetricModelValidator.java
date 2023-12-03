@@ -36,7 +36,7 @@ public class MetricModelValidator {
     private final ResourceLoader resourceLoader;
 
     // ================================================================================================================
-    // Model analysis methods
+    // Model validation methods
 
     public void validateModel(@NonNull Object metricModel, String modelName) throws Exception {
         log.debug("MetricModelValidator.validateModel(): Validating metric model: {}", metricModel);
