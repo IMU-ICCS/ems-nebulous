@@ -121,8 +121,9 @@ public class MetricModelAnalyzer {
         inferGroupings(_TC);
 
         //XXX:TODO:  .... do we need this?
-        // ----- Build each component's SLO set (including those in the scopes it participates) -----
+        // ----- Build components to SLOs maps (including those in the scopes they participate) -----
         buildComponentsToSLOsMap(_TC, ctx, componentNames);
+        buildSLOToComponentsMap(_TC);
 
         // ----------------------------------------------------------
 
@@ -149,7 +150,8 @@ public class MetricModelAnalyzer {
         final Map<NamesKey, Constraint> constraintsUsed = new LinkedHashMap<>();
         final Map<NamesKey, Object> constants = new LinkedHashMap<>();
         final Set<String> functionNames = new HashSet<>();
-        Map<String, Set<NamesKey>> componentSLOsMap;
+        Map<String, Set<NamesKey>> componentsToSLOsMap;
+        Map<NamesKey, Set<String>> slosToComponentsMap;
     }
 
     // ------------------------------------------------------------------------
@@ -293,7 +295,7 @@ public class MetricModelAnalyzer {
                 ));
         log.trace("MetricModelAnalyzer.analyzeModel(): componentsToSLOsMap: {}", componentsToSLOsMap);
 
-        $$(_TC).componentSLOsMap = componentsToSLOsMap;
+        $$(_TC).componentsToSLOsMap = componentsToSLOsMap;
     }
 
     private Map<String, Set<String>> createComponentsToScopesMapping(DocumentContext ctx, Set<String> componentNames) {
@@ -327,6 +329,21 @@ public class MetricModelAnalyzer {
         });
         log.trace("Components-to-Scopes map: {}", componentToScopeMap);
         return componentToScopeMap;
+    }
+
+    private void buildSLOToComponentsMap(TranslationContext _TC) {
+        ConcurrentMap<NamesKey, Set<String>> slosToComponentsMap = $$(_TC).componentsToSLOsMap.entrySet().stream()
+                .map(entry -> entry.getValue().stream()
+                        .map(x -> new AbstractMap.SimpleEntry<>(entry.getKey(), x))
+                        .toList())
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingByConcurrent(
+                        AbstractMap.SimpleEntry::getValue,
+                        Collectors.mapping(AbstractMap.SimpleEntry::getKey, Collectors.toSet())
+                ));
+        log.trace("MetricModelAnalyzer.analyzeModel(): slosToComponentsMap: {}", slosToComponentsMap);
+
+        $$(_TC).slosToComponentsMap = slosToComponentsMap;
     }
 
     // ------------------------------------------------------------------------
