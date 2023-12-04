@@ -47,8 +47,8 @@ class ConstraintsHelper extends AbstractHelper {
             if (object==null)
                 throw createException("SLO without 'constraint': "+sloSpec);
             if (object instanceof Map constraintSpec) {
-                Constraint constr = decomposeConstraint(_TC, asMap(constraintSpec), sloNamesKey, slo);
-                slo.setConstraint(constr);
+                Constraint constraint = decomposeConstraint(_TC, asMap(constraintSpec), sloNamesKey, slo);
+                slo.setConstraint(constraint);
             } else
                 throw createException("SLO constraint is not Map: "+sloSpec);
         });

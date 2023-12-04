@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -119,11 +120,9 @@ public class MetricModelAnalyzer {
         log.debug("MetricModelAnalyzer.analyzeModel(): Infer and set element groupings");
         inferGroupings(_TC);
 
-        //XXX:TODO:  .... do we need these?
-        // ----- Build component-to-scope mapping -----
-//        Map<String, Set<String>> componentToScopeMap = createComponentToScopeMapping(ctx, componentNames);
-
+        //XXX:TODO:  .... do we need this?
         // ----- Build each component's SLO set (including those in the scopes it participates) -----
+        buildComponentsToSLOsMap(_TC, ctx, componentNames);
 
         // ----------------------------------------------------------
 
@@ -150,6 +149,7 @@ public class MetricModelAnalyzer {
         final Map<NamesKey, Constraint> constraintsUsed = new LinkedHashMap<>();
         final Map<NamesKey, Object> constants = new LinkedHashMap<>();
         final Set<String> functionNames = new HashSet<>();
+        Map<String, Set<NamesKey>> componentSLOsMap;
     }
 
     // ------------------------------------------------------------------------
@@ -243,6 +243,10 @@ public class MetricModelAnalyzer {
         });
     }
 
+    // ------------------------------------------------------------------------
+    //  Process SLOs -- This is the main decomposition method (uses helpers)
+    // ------------------------------------------------------------------------
+
     private void processSLOs(TranslationContext _TC) {
         // ----- Decompose SLOs with metric constraints to their metric hierarchies -----
         Map<NamesKey, Object> metricSLOs = $$(_TC).allSLOs.entrySet().stream()
@@ -257,11 +261,49 @@ public class MetricModelAnalyzer {
         constraintsHelper.decomposeConstraints(_TC, nonMetricSLOs);
     }
 
-    /*private Map<String, Set<String>> createComponentToScopeMapping(DocumentContext ctx, Set<String> componentNames) {
+    // ------------------------------------------------------------------------
+    //  SLO per component grouping methods
+    // ------------------------------------------------------------------------
+
+    private void buildComponentsToSLOsMap(TranslationContext _TC, DocumentContext ctx, Set<String> componentNames) {
+        // Group SLOs per component or scope
+        ConcurrentMap<String, Set<NamesKey>> componentOrScopesToSLOsMapping = $$(_TC).allSLOs.entrySet().stream()
+                .collect(Collectors.groupingByConcurrent(
+                        entry -> getContainerName(entry.getValue()),
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
+        log.trace("MetricModelAnalyzer.analyzeModel(): componentOrScopesToSLOsMapping: {}", componentOrScopesToSLOsMapping);
+
+        // Build component-to-scope mapping
+        Map<String, Set<String>> componentsToScopesMap = createComponentsToScopesMapping(ctx, componentNames);
+        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToScopesMap: {}", componentsToScopesMap);
+
+        // Build integrated components SLO sets
+        Map<String, Set<NamesKey>> componentsToSLOsMap = componentNames.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        componentName -> {
+                            Set<String> componentScopes = new LinkedHashSet<>(componentsToScopesMap.get(componentName));
+                            componentScopes.add(componentName);
+                            return componentScopes.stream()
+                                    .map(componentOrScopesToSLOsMapping::get)
+                                    .map(set -> set!=null ? set : new LinkedHashSet<NamesKey>())
+                                    .flatMap(Collection::stream)
+                                    .collect(Collectors.toSet());
+                        }
+                ));
+        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToSLOsMap: {}", componentsToSLOsMap);
+
+        $$(_TC).componentSLOsMap = componentsToSLOsMap;
+    }
+
+    private Map<String, Set<String>> createComponentsToScopesMapping(DocumentContext ctx, Set<String> componentNames) {
         Map<String, Set<String>> componentToScopeMap = new LinkedHashMap<>();
         ctx.read("$.spec.scopes.*", List.class).stream().filter(Objects::nonNull).forEach(scope -> {
-            String sloName = JsonPath.read(scope, "$.name").toString();
+            // Get scope name and scope components
+            String scopeName = JsonPath.read(scope, "$.name").toString();
             Object oComponents = ((Map)scope).get("components");
+
+            // Process scope components spec
             Set<String> includedComponents = componentNames;
             if (oComponents instanceof String s)
                 includedComponents = Arrays.stream(s.split(","))
@@ -276,13 +318,16 @@ public class MetricModelAnalyzer {
             Set<String> notFound = includedComponents.stream()
                     .filter(i -> !componentNames.contains(i)).collect(Collectors.toSet());
             if (!notFound.isEmpty())
-                throw createException("Scope component(s) "+notFound+" have not been specified in scope: "+sloName);
-            else
-                componentToScopeMap.put(sloName, includedComponents);
+                throw createException("Scope component(s) "+notFound+" have not been specified in scope: "+scopeName);
+
+            // Update results map
+            includedComponents.forEach(componentName -> componentToScopeMap
+                    .computeIfAbsent(componentName, name -> new LinkedHashSet<>())
+                    .add(scopeName));
         });
-        log.debug("Component-to-Scope map: {}", componentToScopeMap);
+        log.trace("Components-to-Scopes map: {}", componentToScopeMap);
         return componentToScopeMap;
-    }*/
+    }
 
     // ------------------------------------------------------------------------
     //  Grouping inference methods
