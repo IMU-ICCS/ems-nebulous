@@ -288,11 +288,12 @@ class MetricsHelper extends AbstractHelper {
     }
 
     void processOrphanMetrics(TranslationContext _TC) {
-        HashSet<NamesKey> orphanMetrics = new HashSet<>($$(_TC).allMetrics.keySet());
-        orphanMetrics.removeAll($$(_TC).metricsUsed.keySet());
-        orphanMetrics.removeAll($$(_TC).constants.keySet());
-        log.debug("Orphan metrics: {}", orphanMetrics);
         if (properties.isIncludeOrphanMetrics()) {
+            HashSet<NamesKey> orphanMetrics = new HashSet<>($$(_TC).allMetrics.keySet());
+            orphanMetrics.removeAll($$(_TC).metricsUsed.keySet());
+            orphanMetrics.removeAll($$(_TC).constants.keySet());
+            log.debug("Orphan metrics: {}", orphanMetrics);
+
             MetricVariable metricVar = MetricVariable.builder()
                     .name(properties.getOrphanMetricsParentName())
                     .build();

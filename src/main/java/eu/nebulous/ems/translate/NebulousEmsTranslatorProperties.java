@@ -50,4 +50,8 @@ public class NebulousEmsTranslatorProperties implements InitializingBean {
     // Orphan metrics
     private boolean includeOrphanMetrics = true;
     private String orphanMetricsParentName = "_ORPHANED_METRICS_ROOT_VAR_";
+
+    // DAG post-processing
+    private boolean updateNodesWithRequiringComponents = true;
+    private boolean useCommonOrphansParent;
 }

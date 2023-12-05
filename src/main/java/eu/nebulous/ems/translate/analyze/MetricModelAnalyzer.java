@@ -12,11 +12,11 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ParseContext;
+import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import gr.iccs.imu.ems.translate.Grouping;
 import gr.iccs.imu.ems.translate.TranslationContext;
 import gr.iccs.imu.ems.translate.dag.DAGNode;
 import gr.iccs.imu.ems.translate.model.*;
-import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,6 +39,7 @@ public class MetricModelAnalyzer {
     private final FunctionsHelper functionsHelper;
     private final ConstraintsHelper constraintsHelper;
     private final MetricsHelper metricsHelper;
+    private final NodeUpdatingHelper nodeUpdatingHelper;
 
     // ================================================================================================================
     // Model analysis methods
@@ -120,10 +120,23 @@ public class MetricModelAnalyzer {
         log.debug("MetricModelAnalyzer.analyzeModel(): Infer and set element groupings");
         inferGroupings(_TC);
 
-        //XXX:TODO:  .... do we need this?
         // ----- Build components to SLOs maps (including those in the scopes they participate) -----
-        buildComponentsToSLOsMap(_TC, ctx, componentNames);
-        buildSLOToComponentsMap(_TC);
+        if (properties.isUpdateNodesWithRequiringComponents()) {
+            log.debug("MetricModelAnalyzer.analyzeModel(): Updating DAG nodes with requiring component names");
+
+            // Build component to SLO maps
+            nodeUpdatingHelper.buildComponentsToSLOsMap(_TC, ctx, componentNames);
+            nodeUpdatingHelper.buildSLOToComponentsMap(_TC);
+
+            // Update DAG nodes with components requiring them (busy-status and orphans are required by all components)
+            nodeUpdatingHelper.updateDAGNodesWithComponents(_TC, componentNames);
+        }
+
+        // ----- Remove Orphan metrics common parent variable -----
+        if (! properties.isUseCommonOrphansParent()) {
+            log.debug("MetricModelAnalyzer.analyzeModel(): Removing common orphan metrics parent");
+            nodeUpdatingHelper.removeCommonOrphanMetricsParent(_TC);
+        }
 
         // ----------------------------------------------------------
 
@@ -261,89 +274,6 @@ public class MetricModelAnalyzer {
         Map<NamesKey, Object> nonMetricSLOs = new LinkedHashMap<>($$(_TC).allSLOs);
         nonMetricSLOs.keySet().removeAll( metricSLOs.keySet() );
         constraintsHelper.decomposeConstraints(_TC, nonMetricSLOs);
-    }
-
-    // ------------------------------------------------------------------------
-    //  SLO per component grouping methods
-    // ------------------------------------------------------------------------
-
-    private void buildComponentsToSLOsMap(TranslationContext _TC, DocumentContext ctx, Set<String> componentNames) {
-        // Group SLOs per component or scope
-        ConcurrentMap<String, Set<NamesKey>> componentOrScopesToSLOsMapping = $$(_TC).allSLOs.entrySet().stream()
-                .collect(Collectors.groupingByConcurrent(
-                        entry -> getContainerName(entry.getValue()),
-                        Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentOrScopesToSLOsMapping: {}", componentOrScopesToSLOsMapping);
-
-        // Build component-to-scope mapping
-        Map<String, Set<String>> componentsToScopesMap = createComponentsToScopesMapping(ctx, componentNames);
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToScopesMap: {}", componentsToScopesMap);
-
-        // Build integrated components SLO sets
-        Map<String, Set<NamesKey>> componentsToSLOsMap = componentNames.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        componentName -> {
-                            Set<String> componentScopes = new LinkedHashSet<>(componentsToScopesMap.get(componentName));
-                            componentScopes.add(componentName);
-                            return componentScopes.stream()
-                                    .map(componentOrScopesToSLOsMapping::get)
-                                    .map(set -> set!=null ? set : new LinkedHashSet<NamesKey>())
-                                    .flatMap(Collection::stream)
-                                    .collect(Collectors.toSet());
-                        }
-                ));
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToSLOsMap: {}", componentsToSLOsMap);
-
-        $$(_TC).componentsToSLOsMap = componentsToSLOsMap;
-    }
-
-    private Map<String, Set<String>> createComponentsToScopesMapping(DocumentContext ctx, Set<String> componentNames) {
-        Map<String, Set<String>> componentToScopeMap = new LinkedHashMap<>();
-        ctx.read("$.spec.scopes.*", List.class).stream().filter(Objects::nonNull).forEach(scope -> {
-            // Get scope name and scope components
-            String scopeName = JsonPath.read(scope, "$.name").toString();
-            Object oComponents = ((Map)scope).get("components");
-
-            // Process scope components spec
-            Set<String> includedComponents = componentNames;
-            if (oComponents instanceof String s)
-                includedComponents = Arrays.stream(s.split(","))
-                        .map(String::trim).filter(str->!str.isBlank())
-                        .collect(Collectors.toSet());
-            if (oComponents instanceof List l)
-                includedComponents = ((List<Object>) l).stream().filter(Objects::nonNull)
-                        .filter(i->i instanceof String).map(i -> i.toString().trim())
-                        .filter(str -> !str.isBlank()).collect(Collectors.toSet());
-            if (includedComponents.isEmpty())
-                includedComponents = componentNames;
-            Set<String> notFound = includedComponents.stream()
-                    .filter(i -> !componentNames.contains(i)).collect(Collectors.toSet());
-            if (!notFound.isEmpty())
-                throw createException("Scope component(s) "+notFound+" have not been specified in scope: "+scopeName);
-
-            // Update results map
-            includedComponents.forEach(componentName -> componentToScopeMap
-                    .computeIfAbsent(componentName, name -> new LinkedHashSet<>())
-                    .add(scopeName));
-        });
-        log.trace("Components-to-Scopes map: {}", componentToScopeMap);
-        return componentToScopeMap;
-    }
-
-    private void buildSLOToComponentsMap(TranslationContext _TC) {
-        ConcurrentMap<NamesKey, Set<String>> slosToComponentsMap = $$(_TC).componentsToSLOsMap.entrySet().stream()
-                .map(entry -> entry.getValue().stream()
-                        .map(x -> new AbstractMap.SimpleEntry<>(entry.getKey(), x))
-                        .toList())
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingByConcurrent(
-                        AbstractMap.SimpleEntry::getValue,
-                        Collectors.mapping(AbstractMap.SimpleEntry::getKey, Collectors.toSet())
-                ));
-        log.trace("MetricModelAnalyzer.analyzeModel(): slosToComponentsMap: {}", slosToComponentsMap);
-
-        $$(_TC).slosToComponentsMap = slosToComponentsMap;
     }
 
     // ------------------------------------------------------------------------
