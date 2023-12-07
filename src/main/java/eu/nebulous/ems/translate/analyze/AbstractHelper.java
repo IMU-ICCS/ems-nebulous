@@ -18,5 +18,4 @@ abstract class AbstractHelper {
     protected MetricModelAnalyzer.AdditionalTranslationContextData $$(TranslationContext _TC) {
         return _TC.$(MetricModelAnalyzer.AdditionalTranslationContextData.class);
     }
-
 }

@@ -52,6 +52,7 @@ public class RuleGenerator implements InitializingBean {
         log.debug("RuleGenerator.ruleTemplates:\n{}", ruleTemplatesRegistry.getRuleTemplates());
         _generateRules(_TC);
         _TC.getTopicConnections();  // force topicConnections population
+        _updateMonitors(_TC);
     }
 
     // ========================================================================
@@ -496,7 +497,11 @@ public class RuleGenerator implements InitializingBean {
     }
 
     protected String getElemNameNormalized(NamedElement elem) {
-        return elem.getName().replace("_", "__").replaceAll("[^A-Za-z0-9_]", "_");
+        return getElemNameNormalized(elem.getName());
+    }
+
+    protected String getElemNameNormalized(String name) {
+        return name.replace("_", "__").replaceAll("[^A-Za-z0-9_]", "_");
     }
 
     protected void _generateRule(TranslationContext _TC, String type, String grouping, NamedElement elem, Context context) {
@@ -872,6 +877,25 @@ public class RuleGenerator implements InitializingBean {
         } else {
             return String.format("\nOUTPUT LAST EVERY %d %s", schedPeriod, schedUnit);
         }
+    }
+
+    // ========================================================================
+    // Monitor update methods
+    // ========================================================================
+
+    private void _updateMonitors(TranslationContext _TC) {
+        // Normalize entries of _TC.MONS (names of sensors, which coincides with monitor metrics)
+        Set<String> newSensorNames = _TC.getMONS().stream().map(this::getElemNameNormalized).collect(Collectors.toSet());
+        _TC.getMONS().clear();
+        _TC.getMONS().addAll(newSensorNames);
+
+        // Normalize entries of _TC.MON (names in monitors, i.e. metric, and sensor name)
+        _TC.getMON().forEach(mon -> {
+            String newMetric = getElemNameNormalized(mon.getMetric());
+            String newSensorName = getElemNameNormalized(mon.getSensor().getName());
+            mon.setMetric(newMetric);
+            mon.getSensor().setName(newSensorName);
+        });
     }
 
     // ========================================================================

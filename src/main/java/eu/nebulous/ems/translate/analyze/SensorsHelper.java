@@ -8,14 +8,16 @@
 
 package eu.nebulous.ems.translate.analyze;
 
+import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
+import eu.nebulous.ems.translate.plugins.SensorPostProcessorPlugin;
 import gr.iccs.imu.ems.translate.TranslationContext;
 import gr.iccs.imu.ems.translate.dag.DAGNode;
 import gr.iccs.imu.ems.translate.model.*;
-import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import gr.iccs.imu.ems.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -30,11 +32,37 @@ import static eu.nebulous.ems.translate.analyze.AnalysisUtils.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-class SensorsHelper extends AbstractHelper {
+class SensorsHelper extends AbstractHelper implements InitializingBean {
     private static final String DEFAULT_SENSOR_NAME_SUFFIX = "_SENSOR";
     private static final String DEFAULT_SENSOR_TYPE = "netdata";
 
     private final NebulousEmsTranslatorProperties properties;
+    private final List<SensorPostProcessorPlugin> sensorPostProcessorPlugins;
+    private final Map<String, SensorPostProcessorPlugin> sensorTypePluginsRegistry = new LinkedHashMap<>();
+
+    @Override
+    public void afterPropertiesSet() {
+        log.debug("SensorsHelper: Found sensor post-processor plugins: {}", sensorPostProcessorPlugins);
+        sensorPostProcessorPlugins.forEach(plugin -> {
+            List<String> types = plugin.getSupportedTypes();
+            if (types!=null && !types.isEmpty()) {
+                List<String> typesNormalized = types.stream().map(String::trim).map(String::toLowerCase).toList();
+                if (typesNormalized.stream().anyMatch(sensorTypePluginsRegistry::containsKey)) {
+                    throw new IllegalArgumentException(this.getClass().getName()
+                            + " supports at least one sensor type that is already registered: "
+                            + " this.types="+types+", registered-types="+sensorTypePluginsRegistry.keySet()
+                    );
+                }
+                // Supported types have not been previously  registered
+
+                typesNormalized.forEach(type->{
+                    sensorTypePluginsRegistry.put(type, plugin);
+                    log.debug("SensorsHelper: Registered sensor type: type={}, plugin={}", type, plugin.getClass());
+                });
+            }
+        });
+        log.info("SensorsHelper: Sensor Type Registry: {}", sensorTypePluginsRegistry);
+    }
 
     Sensor processSensor(TranslationContext _TC, Map<String, Object> sensorSpec, NamesKey parentNamesKey, NamedElement parent) {
         // Get needed fields
@@ -78,6 +106,9 @@ class SensorsHelper extends AbstractHelper {
         }
         sensor.setConfigurationStr( configObj instanceof String s ? s : null );
         sensor.setConfiguration( configuration );
+
+        // Call type-specific plugin (if any) to post-process sensor definition
+        postProcessSensor(sensor, sensorType, sensorSpec);
 
         // Update TC
         DAGNode sensorNode = _TC.getDAG().addNode(parent, sensor);
@@ -164,9 +195,10 @@ class SensorsHelper extends AbstractHelper {
         for (DAGNode parent : _TC.getDAG().getParentNodes(sensorNode)) {
             // Get metric name from sensor
             log.debug("    + _createMonitorsForSensor(): sensor={} :: parent-node={}", sensor.getName(), parent.getName());
-            Map<String, Object> rawMetricSpec = asMap(parent.getElement().getObject());
-            String metricName = getSpecName(rawMetricSpec);
-            log.debug("    + _createMonitorsForSensor(): sensor={} :: metric={}, component={}", sensor.getName(), metricName, componentName);
+            /*Map<String, Object> rawMetricSpec = asMap(parent.getElement().getObject());
+            String metricName = getSpecName(rawMetricSpec);*/
+            String metricName = sensor.getName();
+            log.debug("    + _createMonitorsForSensor(): sensor={} :: topic={}, component={}", sensor.getName(), metricName, componentName);
 
             // Create a Monitor instance
             Monitor monitor = Monitor.builder()
@@ -181,5 +213,16 @@ class SensorsHelper extends AbstractHelper {
         log.debug("    _createMonitorsForSensor(): sensor={} :: monitors={}", sensor.getName(), results);
 
         return results;
+    }
+
+    private void postProcessSensor(Sensor sensor, String sensorType, Map<String, Object> sensorSpec) {
+        String type = StringUtils.defaultIfBlank(sensorType, DEFAULT_SENSOR_TYPE).trim().toLowerCase();
+        SensorPostProcessorPlugin plugin = sensorTypePluginsRegistry.get(type);
+        if (plugin==null) {
+            log.warn(">>>>>>>>>>> SensorsHelper: postProcessSensor: No post-processor plugin found for sensor type: {}", sensorType);
+        } else {
+            log.warn(">>>>>>>>>>> SensorsHelper: postProcessSensor: Calling post-processor plugin: type={}, plugin={}", sensorType, plugin);
+            plugin.postProcessSensor(sensor, sensorType, sensorSpec);
+        }
     }
 }
