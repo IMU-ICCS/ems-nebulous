@@ -25,6 +25,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.Function;
 
 @Slf4j
 @Service
@@ -37,6 +38,10 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 	private final MetricModelAnalyzer analyzer;
 	private final GraphTransformer transformer;
 	private final RuleGenerator generator;
+
+	public final static Function<String, String> nameNormalization =
+			(name) -> name.replace("_", "__").replaceAll("[^A-Za-z0-9_]", "_");
+	public final static Function<String, String> nameToTopic = nameNormalization;
 
 	@Override
 	public void afterPropertiesSet() throws Exception {

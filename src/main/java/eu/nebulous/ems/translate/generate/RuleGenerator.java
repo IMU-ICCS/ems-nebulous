@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.translate.generate;
 
+import eu.nebulous.ems.translate.NebulousEmsTranslator;
 import gr.iccs.imu.ems.brokercep.cep.MathUtil;
 import gr.iccs.imu.ems.translate.TranslationContext;
 import gr.iccs.imu.ems.translate.model.*;
@@ -501,7 +502,7 @@ public class RuleGenerator implements InitializingBean {
     }
 
     protected String getElemNameNormalized(String name) {
-        return name.replace("_", "__").replaceAll("[^A-Za-z0-9_]", "_");
+        return NebulousEmsTranslator.nameNormalization.apply(name);
     }
 
     protected void _generateRule(TranslationContext _TC, String type, String grouping, NamedElement elem, Context context) {
