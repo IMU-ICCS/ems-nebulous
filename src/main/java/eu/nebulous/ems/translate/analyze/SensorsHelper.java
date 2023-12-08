@@ -219,9 +219,9 @@ class SensorsHelper extends AbstractHelper implements InitializingBean {
         String type = StringUtils.defaultIfBlank(sensorType, DEFAULT_SENSOR_TYPE).trim().toLowerCase();
         SensorPostProcessorPlugin plugin = sensorTypePluginsRegistry.get(type);
         if (plugin==null) {
-            log.warn(">>>>>>>>>>> SensorsHelper: postProcessSensor: No post-processor plugin found for sensor type: {}", sensorType);
+            log.debug("SensorsHelper: postProcessSensor: No post-processor plugin found for sensor type: {}", sensorType);
         } else {
-            log.warn(">>>>>>>>>>> SensorsHelper: postProcessSensor: Calling post-processor plugin: type={}, plugin={}", sensorType, plugin);
+            log.debug("SensorsHelper: postProcessSensor: Calling post-processor plugin: type={}, plugin={}", sensorType, plugin);
             plugin.postProcessSensor(sensor, sensorType, sensorSpec);
         }
     }
