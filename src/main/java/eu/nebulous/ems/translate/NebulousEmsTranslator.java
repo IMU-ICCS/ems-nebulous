@@ -121,7 +121,8 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 		generator.generateRules(_TC);
 		log.debug("NebulousEmsTranslator.translate():  Generating EPL rules... done");
 
-		log.debug("NebulousEmsTranslator.translate():  END: result={}", _TC);
+		log.debug("NebulousEmsTranslator.translate():  END: metric-model={}", modelObj);
+		log.trace("NebulousEmsTranslator.translate():  END: result={}", _TC);
 		return _TC;
 	}
 
