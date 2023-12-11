@@ -9,6 +9,7 @@
 
 package eu.nebulous.ems.plugins;
 
+import eu.nebulous.ems.translate.NebulousEmsTranslator;
 import gr.iccs.imu.ems.control.plugin.PostTranslationPlugin;
 import gr.iccs.imu.ems.control.properties.TopicBeaconProperties;
 import gr.iccs.imu.ems.control.util.TopicBeacon;
@@ -81,7 +82,7 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
         }
 
         HashMap<String,Object> result = new HashMap<>();
-        result.put("name", "_");
+        result.put("name", "_" + translationContext.getModelName());
         result.put("operator", "OR");
         result.put("constraints", slos);
         result.put("version", topicBeacon.getModelVersion());
@@ -129,7 +130,11 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
         String elementName = constraintNode.getName();
         String elementClassName = constraintNode.getClass().getName();
         if (constraintNode instanceof MetricConstraint) {
-            return mcMap.get(elementName);
+            MetricConstraint mc = mcMap.get(elementName);
+            return Map.of(
+                    "name", NebulousEmsTranslator.nameNormalization.apply(mc.getName()),
+                    "comparisonOperator", mc.getComparisonOperator(),
+                    "threshold", mc.getThreshold());
         } else
         if (constraintNode instanceof LogicalConstraint) {
             LogicalConstraint lc = lcMap.get(elementName);
@@ -143,7 +148,7 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
 
             // create decomposition result
             Map<String,Object> result = new HashMap<>();
-            result.put("name", lc.getName());
+            result.put("name", NebulousEmsTranslator.nameNormalization.apply( lc.getName() ));
             result.put("operator", lc.getLogicalOperator());
             result.put("constraints", list);
             return result;
@@ -158,7 +163,7 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
 
             // create decomposition result
             Map<String,Object> result = new HashMap<>();
-            result.put("name", itc.getName());
+            result.put("name", NebulousEmsTranslator.nameNormalization.apply( itc.getName() ));
             result.put("if", itcIf);
             result.put("then", itcThen);
             result.put("else", itcElse);
@@ -183,7 +188,7 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
                 ValueRange.of(properties.getPredictionMinAllowedRate(), properties.getPredictionMaxAllowedRate());
         List<HashMap<String, Object>> payload = metricsOfTopLevelNodes.stream().map(mc -> {
             HashMap<String, Object> map = new HashMap<>();
-            map.put("metric", mc.getName());
+            map.put("metric", NebulousEmsTranslator.nameNormalization.apply( mc.getName() ));
             map.put("component", mc.getComponentName());
             map.put("level", 3);
             map.put("version", currVersion);

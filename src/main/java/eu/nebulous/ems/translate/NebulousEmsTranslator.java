@@ -84,11 +84,14 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 	// ================================================================================================================
 	// Private methods
 
-	private TranslationContext translate(Object modelObj, String modelName) throws Exception {
+	private TranslationContext translate(Object modelObj, String modelFileName) throws Exception {
 		log.debug("NebulousEmsTranslator.translate():  BEGIN: metric-model={}", modelObj);
 
+		// Get model name
+		String modelName = getModelName(modelFileName);
+
 		// Initialize data structures
-		TranslationContext _TC = new TranslationContext(modelName);
+		TranslationContext _TC = new TranslationContext(modelName, modelFileName);
 
 		// -- Expand shorthand expressions ------------------------------------
 		log.debug("NebulousEmsTranslator.translate(): Expanding shorthand expressions: {}", modelName);
@@ -120,6 +123,13 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 
 		log.debug("NebulousEmsTranslator.translate():  END: result={}", _TC);
 		return _TC;
+	}
+
+	private String getModelName(String modelFileName) {
+		String modelName = Paths.get(modelFileName).toFile().getName();
+		modelName = StringUtils.removeEndIgnoreCase(modelName, ".yaml");
+		modelName = StringUtils.removeEndIgnoreCase(modelName, ".yml");
+		return modelName;
 	}
 
 }
