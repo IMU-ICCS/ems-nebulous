@@ -243,6 +243,8 @@ class MetricsHelper extends AbstractHelper {
 
         // Register metric constant, and initial value (if available)
         $$(_TC).constants.put(metricNamesKey, defaultValue);
+        if (defaultValue!=null)
+            _TC.addConstantDefault(metricName, defaultValue);
     }
 
     private MetricTemplate processMetricTemplate(Map<String, Object> metricSpec, NamesKey parentNamesKey) {
