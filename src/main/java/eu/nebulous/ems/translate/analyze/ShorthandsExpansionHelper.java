@@ -145,7 +145,7 @@ public class ShorthandsExpansionHelper {
 
     private void expandOutputSchedule(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandOutputSchedule: {}", spec);
-        String constraintStr = JsonPath.read(spec, "$.output").toString().trim();
+        String constraintStr = JsonPath.read(spec, "$.schedule").toString().trim();
         Matcher matcher = METRIC_OUTPUT_SCHEDULE_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
             asMap(spec).put("schedule", Map.of(

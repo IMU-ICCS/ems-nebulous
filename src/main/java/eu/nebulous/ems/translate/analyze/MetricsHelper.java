@@ -39,6 +39,8 @@ class MetricsHelper extends AbstractHelper {
     private final SensorsHelper sensorsHelper;
 
     MetricContext decomposeMetric(@NonNull TranslationContext _TC, Map<String, Object> metricSpec, NamesKey parentNamesKey, NamedElement parent) {
+        log.debug("decomposeMetric: ARGS: spec: {}, parent-name: {}, parent-elem: {}", metricSpec, parentNamesKey, parent);
+
         // Get needed fields
         String metricName = getSpecName(metricSpec).toLowerCase();
         String metricType = getSpecField(metricSpec, "type");
@@ -120,6 +122,8 @@ class MetricsHelper extends AbstractHelper {
     }
 
     private RawMetricContext decomposeRawMetric(TranslationContext _TC, Map<String, Object> metricSpec, NamedElement parent) {
+        log.debug("decomposeRawMetric: ARGS: spec: {}, parent: {}", metricSpec, parent);
+
         // Get needed fields
         String metricName = getSpecName(metricSpec);
         Map<String, Object> sensorSpec = asMap(metricSpec.get("sensor"));
@@ -150,6 +154,8 @@ class MetricsHelper extends AbstractHelper {
     }
 
     private CompositeMetricContext decomposeCompositeMetric(TranslationContext _TC, Map<String, Object> metricSpec, NamedElement parent) {
+        log.debug("decomposeCompositeMetric: ARGS: spec: {}, parent: {}", metricSpec, parent);
+
         // Get needed fields
         String metricName = getSpecName(metricSpec);
         String formula = getMandatorySpecField(metricSpec, "formula", "Composite Metric '"+metricName+"' without 'formula': ");

@@ -217,6 +217,7 @@ public class MetricModelAnalyzer {
 
     private void buildElementLists(TranslationContext _TC, Map<String, Object> modelRoot) {
         asList(JsonPath.read(modelRoot, "$.spec.*.*")).stream().filter(Objects::nonNull).forEach(spec -> {
+            log.debug("buildElementLists: {}", spec);
             String parentName = getSpecName(spec);
             if (StringUtils.isBlank(parentName)) throw createException("Component or Scope with no name: " + spec);
             $$(_TC).parentSpecs.computeIfAbsent(parentName, (key)->spec);
@@ -225,6 +226,7 @@ public class MetricModelAnalyzer {
             List<Object> slos = JsonPath.read(spec,
                     "$[?(@.requirements!=null && @.requirements.*[?(@.type=='slo')])].requirements.*");
             slos.stream().filter(Objects::nonNull).forEach(sloSpec -> {
+                log.debug("buildElementLists: SLO (requirements): {}", sloSpec);
                 String sloName = getSpecName(sloSpec);
                 if (StringUtils.isBlank(sloName)) throw createException("SLO spec with no name: " + sloSpec);
                 $$(_TC).allSLOs.put(NamesKey.create(parentName, sloName), sloSpec);
@@ -232,6 +234,7 @@ public class MetricModelAnalyzer {
 
             // Constraints flat list building
             slos.stream().filter(Objects::nonNull).forEach(sloSpec -> {
+                log.debug("buildElementLists: SLO (constraints): {}", sloSpec);
                 String sloName = getSpecName(sloSpec);
                 if (StringUtils.isBlank(sloName)) throw createException("SLO spec with no name: " + sloSpec);
 
@@ -244,6 +247,7 @@ public class MetricModelAnalyzer {
             // Metrics flat list building
             List<Object> metrics = JsonPath.read(spec, "$[?(@.metrics!=null)].metrics.*");
             metrics.stream().filter(Objects::nonNull).forEach(metricSpec -> {
+                log.debug("buildElementLists: Metric: {}", metricSpec);
                 String metricName = getSpecName(metricSpec);
                 if (StringUtils.isBlank(metricName)) throw createException("Metric spec with no name: " + metricSpec);
                 NamesKey namesKey = NamesKey.create(parentName, metricName);

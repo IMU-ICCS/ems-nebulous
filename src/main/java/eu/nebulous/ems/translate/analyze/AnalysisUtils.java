@@ -47,12 +47,14 @@ public class AnalysisUtils {
     static List<Object> asList(Object o) {
         if (o==null) return null;
         if (o instanceof List l) return l;
+        log.error("AnalysisUtils.asList: input: {}", o);
         throw createException("Object is not a List: "+o);
     }
 
     static Map<String, Object> asMap(Object o) {
         if (o==null) return null;
         if (o instanceof Map m) return m;
+        log.error("AnalysisUtils.asMap: input: {}", o);
         throw createException("Object is not a Map: "+o);
     }
 
