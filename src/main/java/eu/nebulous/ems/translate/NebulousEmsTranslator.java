@@ -77,6 +77,7 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 
 			return _TC;
 		} catch (Exception e) {
+			log.error("NebulousEmsTranslator: EXCEPTION while translating metric model file: {}\nException: ", e.getMessage(), e);
 			throw new NebulousEmsTranslationException("Error while translating metric model file: "+metricModelPath, e);
 		}
 	}

@@ -46,6 +46,8 @@ public class ShorthandsExpansionHelper {
     // ------------------------------------------------------------------------
 
     public void expandShorthandExpressions(Object metricModel, String modelName) throws Exception {
+        log.debug("ShorthandsExpansionHelper: model-name: {}", modelName);
+
         // -- Initialize jsonpath context -------------------------------------
         Configuration jsonpathConfig = Configuration.defaultConfiguration();
         ParseContext parseContext = JsonPath.using(jsonpathConfig);
@@ -99,6 +101,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandWindow(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandWindow: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.window").toString().trim();
         Matcher matcher = METRIC_WINDOW_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
@@ -113,6 +116,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandWindowSize(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandWindowSize: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.size").toString().trim();
         Matcher matcher = METRIC_WINDOW_SIZE_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
@@ -125,6 +129,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandOutput(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandOutput: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.output").toString().trim();
         Matcher matcher = METRIC_OUTPUT_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
@@ -139,6 +144,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandOutputSchedule(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandOutputSchedule: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.output").toString().trim();
         Matcher matcher = METRIC_OUTPUT_SCHEDULE_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
@@ -151,6 +157,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandSensor(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandSensor: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.sensor").toString().trim();
         Matcher matcher = METRIC_SENSOR_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
@@ -163,6 +170,7 @@ public class ShorthandsExpansionHelper {
     }
 
     private void expandConstraint(Object spec) {
+        log.debug("ShorthandsExpansionHelper.expandConstraint: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.constraint").toString().trim();
         Matcher matcher = METRIC_CONSTRAINT_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
