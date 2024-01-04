@@ -27,8 +27,8 @@
         <ems.version>7.0.0-SNAPSHOT</ems.version>
 
         <!-- Spring Boot versions -->
-        <spring.version>6.1.1</spring.version>
-        <spring-boot.version>3.2.0</spring-boot.version>
+        <spring.version>6.1.2</spring.version>
+        <spring-boot.version>3.2.1</spring-boot.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <lombok.version>1.18.30</lombok.version>
 
