@@ -402,8 +402,8 @@
           "description": "Constant metric template (if omitted means any real number)",
           "$ref": "#/$defs/template"
         },
-        "default": {
-          "description": "Constant initial value. NOTE: If omitted errors may occur at runtime until a value is provided",
+        "initial": {
+          "description": "Constant's initial value. NOTE: If omitted errors may occur at runtime until a value is provided",
           "oneOf": [
             {
               "type": "string"
