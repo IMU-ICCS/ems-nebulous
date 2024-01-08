@@ -37,6 +37,10 @@
         <json-path.version>2.8.0</json-path.version>
         <thymeleaf.version>3.1.2.RELEASE</thymeleaf.version>
         <schematron.version>7.1.3</schematron.version>
+
+        <!-- io.fabricat8 docker-maven-plugin properties -->
+        <docker-image-properties-file>../ems-main/ems-core/control-service/target/docker-image.properties</docker-image-properties-file>
+        <docker-maven-plugin.version>0.43.2</docker-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -213,6 +217,57 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Read docker image properties from file -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.2.0</version>
+                <executions>
+                    <execution>
+                        <id>read-docker-image-properties</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!--<keyPrefix>dev-</keyPrefix>-->
+                    <files>
+                        <file>${docker-image-properties-file}</file>
+                    </files>
+                    <outputFile/>
+                    <properties/>
+                </configuration>
+            </plugin>
+
+            <!-- Build docker image using docker-context folder -->
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>${docker-maven-plugin.version}</version>
+                <configuration>
+                    <!--<dockerHost>https://localhost:2376</dockerHost>-->
+                    <verbose>true</verbose>
+                    <useColor>true</useColor>
+                    <images>
+                        <image>
+                            <name>${docker.image.name}:${docker.image.tag}-nebulous</name>
+                        </image>
+                    </images>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>docker-image-build</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
