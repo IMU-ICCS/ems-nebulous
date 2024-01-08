@@ -242,6 +242,27 @@
                 </configuration>
             </plugin>
 
+            <!--<plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>delete-old-docker-context</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo>Print Docker image dev properties</echo>
+                                <echo>Image name: "${docker.image.name}"</echo>
+                                <echo> Image Tag: "${docker.image.tag}"</echo>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
+
             <!-- Build docker image using docker-context folder -->
             <plugin>
                 <groupId>io.fabric8</groupId>
@@ -254,6 +275,31 @@
                     <images>
                         <image>
                             <name>${docker.image.name}:${docker.image.tag}-nebulous</name>
+                            <build>
+                                <from>${docker.image.name}:${docker.image.tag}</from>
+                                <labels>
+                                    <artifactId>${project.artifactId}</artifactId>
+                                    <artifactId>${project.groupId}</artifactId>
+                                    <version>${project.version}</version>
+                                </labels>
+                                <env>
+                                    <EXTRA_LOADER_PATHS>/plugins/*</EXTRA_LOADER_PATHS>
+                                    <SCAN_PACKAGES>eu.nebulous.ems</SCAN_PACKAGES>
+                                </env>
+                                <assembly>
+                                    <targetDir>/plugin</targetDir>
+                                    <inline>
+                                        <files>
+                                            <file>
+                                                <!-- Path to the file you want to copy -->
+                                                <source>${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar</source>
+                                                <!-- Destination path within the container -->
+                                                <outputDirectory></outputDirectory>
+                                            </file>
+                                        </files>
+                                    </inline>
+                                </assembly>
+                            </build>
                         </image>
                     </images>
                 </configuration>
