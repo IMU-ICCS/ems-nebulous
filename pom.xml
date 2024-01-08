@@ -13,7 +13,7 @@
 
     <name>Event Management System for Nebulous</name>
     <groupId>gr.iccs.imu.ems</groupId>
-    <artifactId>ems-core</artifactId>
+    <artifactId>ems-nebublous</artifactId>
     <version>7.8.9</version>
     <packaging>pom</packaging>
 
