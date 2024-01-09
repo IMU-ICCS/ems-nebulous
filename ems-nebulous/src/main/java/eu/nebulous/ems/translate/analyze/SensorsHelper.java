@@ -61,7 +61,7 @@ class SensorsHelper extends AbstractHelper implements InitializingBean {
                 });
             }
         });
-        log.info("SensorsHelper: Sensor Type Registry: {}", sensorTypePluginsRegistry);
+        log.debug("SensorsHelper: Sensor Type Registry: {}", sensorTypePluginsRegistry);
     }
 
     Sensor processSensor(TranslationContext _TC, Map<String, Object> sensorSpec, NamesKey parentNamesKey, NamedElement parent) {
