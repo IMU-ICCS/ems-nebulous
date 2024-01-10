@@ -15,7 +15,7 @@
     <artifactId>ems-nebulous-plugin</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>EMS Nebulous plugin</name>
+    <name>Nebulous EMS plugin</name>
     <description>Nebulous EMS plugin providing the metric model translator and MVV service</description>
 
     <properties>
