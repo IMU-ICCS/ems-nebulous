@@ -288,7 +288,7 @@
                                     <SCAN_PACKAGES>eu.nebulous.ems</SCAN_PACKAGES>
                                 </env>
                                 <assembly>
-                                    <targetDir>/plugin</targetDir>
+                                    <targetDir>/plugins</targetDir>
                                     <inline>
                                         <files>
                                             <file>
