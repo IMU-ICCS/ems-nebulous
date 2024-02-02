@@ -45,6 +45,7 @@
         <!-- EMS Nebulous Docker image properties -->
         <docker-image-properties-file>docker-image.properties</docker-image-properties-file>
         <docker.image.tag-nebulous>${docker.image.tag}-nebulous</docker.image.tag-nebulous>
+        <build.description>EMS Nebulous Docker Image is based on the EMS Core Docker Image</build.description>
     </properties>
 
     <dependencyManagement>
@@ -172,7 +173,83 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <targetPath>${project.build.directory}</targetPath>
+                <filtering>true</filtering>
+                <includes>
+                    <include>banner.txt</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>*</include>
+                </includes>
+                <excludes>
+                    <exclude>banner.txt</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
+            <!-- Plugins for getting Buildnumber and Git info -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>buildnumber-create</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>buildnumber-create-metadata</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create-metadata</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <!--<format>{0,number,integer}</format>-->
+                    <timestampFormat>yyyy-MM-dd HH:mm:ss.SSSZ</timestampFormat>
+                    <revisionOnScmFailure>${project.version}</revisionOnScmFailure>
+                    <!--<revisionOnScmFailure>unknownbuild</revisionOnScmFailure>-->
+                    <items>
+                        <item>buildNumber</item>
+                    </items>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>7.0.0</version>
+                <executions>
+                    <execution>
+                        <id>get-git-info</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.directory}/git.properties</generateGitPropertiesFilename>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -328,6 +405,10 @@
                                                 <outputDirectory>plugins</outputDirectory>
                                             </file>
                                             <file>
+                                                <source>${project.build.directory}/banner.txt</source>
+                                                <outputDirectory>tmp</outputDirectory>
+                                            </file>
+                                            <file>
                                                 <source>${project.build.directory}/classes/rule-templates.yml</source>
                                                 <outputDirectory>${docker.user.home}/BOOT-INF/classes</outputDirectory>
                                             </file>
@@ -338,6 +419,12 @@
                                         </files>
                                     </inline>
                                 </assembly>
+                                <runCmds>
+                                    <run>
+                                        cat /tmp/banner.txt >> /opt/ems-server/BOOT-INF/classes/banner.txt \
+                                        &amp;&amp; rm /tmp/banner.txt
+                                    </run>
+                                </runCmds>
                             </build>
                         </image>
                     </images>
@@ -355,5 +442,12 @@
 
         </plugins>
     </build>
+
+    <scm>
+        <connection>scm:git:http://127.0.0.1/dummy</connection>
+        <developerConnection>scm:git:https://127.0.0.1/dummy</developerConnection>
+        <tag>HEAD</tag>
+        <url>http://127.0.0.1/dummy</url>
+    </scm>
 
 </project>
