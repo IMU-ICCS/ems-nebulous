@@ -1,7 +1,5 @@
-${AnsiColor.6}
----------------------------------------------------------------------------------------------
-                  ==========  EMS Nebulous Docker Image details  ==========
----------------------------------------------------------------------------------------------
+
+${AnsiColor.009}                  ==========  EMS Nebulous Docker Image details  ==========
 ${AnsiColor.013} :: Build Num.  :: ${AnsiColor.12}@buildNumber@
 ${AnsiColor.013} :: Build Date  :: ${AnsiColor.12}@timestamp@
 ${AnsiColor.013} :: SCM Branch  :: ${AnsiColor.12}@git.branch@,   at Repos.: @git.remote.origin.url@
