@@ -121,6 +121,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>eu.nebulouscloud</groupId>
+            <artifactId>exn-connector-java</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- ===================================================================== -->
         <!-- Compile time dependencies - Specific to Nebulous EMS extension -->
 
@@ -171,6 +177,13 @@
         </dependency>
 
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>nexus-nebulous</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
 
     <build>
         <resources>
