@@ -49,6 +49,10 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 	@Override
 	public void processTranslationResults(TranslationContext translationContext, TopicBeacon topicBeacon) {
+		if (!properties.isEnabled()) {
+			log.info("ExternalBrokerPublisherService: Disabled due to configuration");
+			return;
+		}
 		log.debug("ExternalBrokerPublisherService: Initializing...");
 
 		// Get application id

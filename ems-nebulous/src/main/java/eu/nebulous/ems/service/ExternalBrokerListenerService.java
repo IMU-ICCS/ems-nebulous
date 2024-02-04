@@ -57,6 +57,10 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		if (!properties.isEnabled()) {
+			log.info("ExternalBrokerListenerService: Disabled due to configuration");
+			return;
+		}
 		if (checkProperties()) {
 			initializeConsumers();
 			initializePublishers();

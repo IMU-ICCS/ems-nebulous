@@ -24,8 +24,9 @@ import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
 @Configuration
 @ConfigurationProperties(prefix = EMS_PROPERTIES_PREFIX + "external")
 public class ExternalBrokerServiceProperties implements InitializingBean {
-    private String brokerAddress = "host.docker.internal";
-    private int brokerPort = 5672;
+    private boolean enabled = true;
+    private String brokerAddress;
+    private int brokerPort;
     private String brokerUsername;
     @ToString.Exclude
     private String brokerPassword;
