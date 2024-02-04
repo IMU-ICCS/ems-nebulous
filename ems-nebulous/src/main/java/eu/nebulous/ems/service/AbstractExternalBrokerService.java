@@ -24,9 +24,9 @@ import java.util.List;
 public abstract class AbstractExternalBrokerService {
 	protected static final String COMPONENT_NAME = "monitoring";
 	protected static final String COMMANDS_TOPIC = "commands";
-//	protected static final String COMMANDS_RESPONSE_TOPIC = "commands.response";
+	protected static final String COMMANDS_RESPONSE_TOPIC = "commands.response";
 	protected static final String MODELS_TOPIC = "models";
-//	protected static final String MODELS_RESPONSE_TOPIC = "models.response";
+	protected static final String MODELS_RESPONSE_TOPIC = "models.response";
 	protected static final String METRIC_TOPIC_PREFIX = "realtime.";
 	protected static final String APPLICATION_PROPERTY = "application-id";
 
