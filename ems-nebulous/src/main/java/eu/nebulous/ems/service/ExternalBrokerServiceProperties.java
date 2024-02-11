@@ -33,6 +33,15 @@ public class ExternalBrokerServiceProperties implements InitializingBean {
     private int healthTimeout = 60;
     private int retryDelay = 10;
 
+    private String commandsTopic = "commands";
+    private String commandsResponseTopic = "commands.response";
+    private String modelsTopic = "ui.application.dsl.metric_model";
+    private String modelsResponseTopic = "ui.application.dsl.metric_model.response";
+    private String metricsTopicPrefix = "realtime.";
+
+    private String componentName = "monitoring";
+    private String applicationIdPropertyName = "uuid";
+
     @Override
     public void afterPropertiesSet() {
         log.debug("ExternalBrokerServiceProperties: {}", this);

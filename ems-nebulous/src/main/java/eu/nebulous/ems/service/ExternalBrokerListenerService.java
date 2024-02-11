@@ -66,6 +66,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			initializePublishers();
 			startCommandProcessor();
 			connectToBroker(List.of(commandsResponsePublisher, modelsResponsePublisher), consumers);
+			log.info("ExternalBrokerListenerService: Initialized listeners");
 		} else {
 			log.warn("ExternalBrokerListenerService: Not configured or misconfigured. Will not initialize");
 		}
@@ -89,15 +90,15 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		// Create consumers for each topic of interest
 		consumers = List.of(
-				new Consumer(COMMANDS_TOPIC, COMMANDS_TOPIC, messageHandler),
-				new Consumer(MODELS_TOPIC, MODELS_TOPIC, messageHandler)
+				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler),
+				new Consumer(properties.getModelsTopic(), properties.getModelsTopic(), messageHandler)
 		);
 		log.debug("ExternalBrokerListenerService: initialized subscribers");
 	}
 
 	private void initializePublishers() {
-		commandsResponsePublisher = new Publisher(COMMANDS_RESPONSE_TOPIC, COMMANDS_RESPONSE_TOPIC, true, false);
-		modelsResponsePublisher = new Publisher(MODELS_RESPONSE_TOPIC, MODELS_RESPONSE_TOPIC, true, false);
+		commandsResponsePublisher = new Publisher(properties.getCommandsResponseTopic(), properties.getCommandsResponseTopic(), true, false);
+		modelsResponsePublisher = new Publisher(properties.getModelsResponseTopic(), properties.getModelsResponseTopic(), true, false);
 	}
 
 	private void startCommandProcessor() {
@@ -118,7 +119,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 	private void processMessage(Command command) throws ClientException, IOException {
 		log.warn("ExternalBrokerListenerService: Command: {}", command);
-		if (COMMANDS_TOPIC.equals(command.key)) {
+		if (properties.getCommandsTopic().equals(command.key)) {
 			// Process command
 			log.warn("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
 
@@ -132,7 +133,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 			sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+command.body);
 		} else
-		if (MODELS_TOPIC.equals(command.key)) {
+		if (properties.getModelsTopic().equals(command.key)) {
 			// Process metric model message
 			log.warn("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
 
@@ -141,7 +142,10 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			if (appId == null) return;
 
 			// Get model string and/or model file
-			String modelStr = command.body.getOrDefault("model", "").toString();
+			String modelStr = command.body.getOrDefault("body", "").toString();
+			if (StringUtils.isBlank(modelStr)) {
+				modelStr = command.body.getOrDefault("model", "").toString();
+			}
 			String modelFile = command.body.getOrDefault("model-path", "").toString();
 
 			// Check if 'model' or 'model-path' is provided
@@ -169,7 +173,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 	}
 
 	private String getAppId(Command command, Publisher publisher) throws ClientException {
-		Object propApp = command.message.property(APPLICATION_PROPERTY);
+		Object propApp = command.message.property(properties.getApplicationIdPropertyName());
 		String appId = propApp != null ? propApp.toString() : null;
 
 		// Check if 'applicationId' is provided

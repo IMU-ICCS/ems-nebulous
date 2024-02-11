@@ -72,7 +72,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 		// Prepare publishers and connector to external broker
 		publishersMap = topLevelTopics.stream().collect(Collectors.toMap(
-				t -> t, t -> new Publisher(t, METRIC_TOPIC_PREFIX + t, true, false)
+				t -> t, t -> new Publisher(t, properties.getMetricsTopicPrefix() + t, true, false)
 		));
 		connectToBroker(publishersMap.values().stream().toList(), List.of());
 
