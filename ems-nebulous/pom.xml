@@ -405,6 +405,8 @@
                                 <env>
                                     <EXTRA_LOADER_PATHS>/plugins/*</EXTRA_LOADER_PATHS>
                                     <SCAN_PACKAGES>eu.nebulous.ems</SCAN_PACKAGES>
+                                    <IP_SETTING>DEFAULT_IP</IP_SETTING>
+                                    <SELF_HEALING_ENABLED>false</SELF_HEALING_ENABLED>
                                 </env>
                                 <assembly>
                                     <targetDir>/</targetDir>
