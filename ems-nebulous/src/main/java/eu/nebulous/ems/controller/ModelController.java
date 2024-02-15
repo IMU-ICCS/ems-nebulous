@@ -71,7 +71,8 @@ public class ModelController {
         }
 
         // Start translation and reconfiguration in a worker thread
-        coordinator.processAppModel(applicationId, null, ControlServiceRequestInfo.create(null, null, jwtToken));
+        coordinator.processAppModel(modelFile, null,
+                ControlServiceRequestInfo.create(applicationId, null, null, jwtToken, null));
         log.debug("ModelController.loadAppModel(): Model translation dispatched to a worker thread");
 
         return "OK";
