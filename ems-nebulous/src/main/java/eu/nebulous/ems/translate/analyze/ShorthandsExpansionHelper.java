@@ -172,6 +172,9 @@ public class ShorthandsExpansionHelper {
     private void expandConstraint(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandConstraint: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.constraint").toString().trim();
+        log.warn("ShorthandsExpansionHelper.expandConstraint: BEFORE removeOuterBrackets: {}", constraintStr);
+        constraintStr = removeOuterBrackets(constraintStr);
+        log.warn("ShorthandsExpansionHelper.expandConstraint:  AFTER removeOuterBrackets: {}", constraintStr);
         Matcher matcher = METRIC_CONSTRAINT_PATTERN.matcher(constraintStr);
         if (matcher.matches()) {
             String g1 = matcher.group(1);
@@ -204,5 +207,19 @@ public class ShorthandsExpansionHelper {
             asMap(spec).put("constraint", constrMap);
         } else
             throw createException("Invalid metric constraint shorthand expression: "+spec);
+    }
+
+    private String removeOuterBrackets(String s) {
+        if (s==null) return null;
+        s = s.trim();
+        if (s.isEmpty()) return s;
+        while (s.startsWith("(") && s.endsWith(")")
+            || s.startsWith("[") && s.endsWith("]")
+            || s.startsWith("{") && s.endsWith("}"))
+        {
+            s = s.substring(1, s.length() - 1).trim();
+            if (s.isEmpty()) return s;
+        }
+        return s;
     }
 }
