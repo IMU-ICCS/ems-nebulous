@@ -10,9 +10,11 @@ package eu.nebulous.ems.service;
 
 import eu.nebulouscloud.exn.Connector;
 import eu.nebulouscloud.exn.core.Consumer;
+import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Publisher;
 import eu.nebulouscloud.exn.handlers.ConnectorHandler;
 import eu.nebulouscloud.exn.settings.StaticExnConfig;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.TaskScheduler;
@@ -42,18 +44,17 @@ public abstract class AbstractExternalBrokerService {
 		try {
 			log.debug("AbstractExternalBrokerService: Trying to connect to broker: {}@{}:{}",
 					properties.getBrokerUsername(), properties.getBrokerAddress(), properties.getBrokerPort());
-			Connector connector = new Connector(
-					properties.getComponentName(), new ConnectorHandler() {},
-					publishers, consumers,
-					false, false,
-					new StaticExnConfig(
-							properties.getBrokerAddress(), properties.getBrokerPort(),
-							properties.getBrokerUsername(), properties.getBrokerPassword(),
-							properties.getHealthTimeout())
-			);
+			Connector connector = createConnector(publishers, consumers);
 			connector.start();
-			this.connector = connector;
 			log.info("AbstractExternalBrokerService: Connected to broker");
+
+			Connector old_connector = this.connector;
+			this.connector = connector;
+			/*XXX:TODO: Report bug!!!
+			if (old_connector!=null) {
+				log.info("AbstractExternalBrokerService: Stopping old connector");
+				old_connector.stop();
+			}*/
 
 		} catch (Exception e) {
 			log.error("AbstractExternalBrokerService: Could not connect to broker: ", e);
@@ -65,5 +66,24 @@ public abstract class AbstractExternalBrokerService {
 				log.error("AbstractExternalBrokerService: Will not retry to connect to broker (delay={})", properties.getRetryDelay());
 			}
 		}
+	}
+
+	@NonNull
+	private Connector createConnector(List<Publisher> publishers, List<Consumer> consumers) {
+		return new Connector(
+				properties.getComponentName(),
+				new ConnectorHandler() {
+					@Override
+					public void onReady(Context context) {
+						log.warn("#################   AbstractExternalBrokerService: onReady: context: {}", context);
+					}
+				},
+				publishers, consumers,
+				false, false,
+				new StaticExnConfig(
+						properties.getBrokerAddress(), properties.getBrokerPort(),
+						properties.getBrokerUsername(), properties.getBrokerPassword(),
+						properties.getHealthTimeout())
+		);
 	}
 }

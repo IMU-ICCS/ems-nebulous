@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.service;
 
+import eu.nebulous.ems.translate.NebulousEmsTranslator;
 import eu.nebulouscloud.exn.core.Publisher;
 import gr.iccs.imu.ems.brokercep.BrokerCepService;
 import gr.iccs.imu.ems.brokercep.event.EventMap;
@@ -70,9 +71,24 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 			return;
 		}
 
+		// Find top-level topics that correspond to SLOs (or other requirements)
+		log.trace("ExternalBrokerPublisherService:  SLOs-BEFORE: {}", translationContext.getSLO());
+		Set<String> sloSet = translationContext.getSLO().stream()
+				.map(NebulousEmsTranslator.nameNormalization)
+				.collect(Collectors.toSet());
+		log.trace("ExternalBrokerPublisherService:   SLOs-AFTER: {}", sloSet);
+
 		// Prepare publishers and connector to external broker
 		publishersMap = topLevelTopics.stream().collect(Collectors.toMap(
-				t -> t, t -> new Publisher(t, properties.getMetricsTopicPrefix() + t, true, false)
+				t -> t, t -> {
+					if (sloSet.contains(t)) {
+						// Send SLO violations to combined SLO topic
+						return new Publisher(t, properties.getCombinedSloTopic(), true, false);
+					} else {
+						// Send non-SLO events to their corresponding Nebulous topics
+						return new Publisher(t, properties.getMetricsTopicPrefix() + t, true, false);
+					}
+				}
 		));
 		connectToBroker(publishersMap.values().stream().toList(), List.of());
 
