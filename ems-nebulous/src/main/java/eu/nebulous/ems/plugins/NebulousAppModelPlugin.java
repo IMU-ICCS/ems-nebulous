@@ -59,10 +59,10 @@ public class NebulousAppModelPlugin implements AppModelPlugin {
         try {
             configWriteService
                     .getOrCreateConfigFile(
-                            EmsConstant.EMS_CLIENT_k8S_CONFIG_MAP_FILE,
-                            EmsConstant.EMS_CLIENT_k8S_CONFIG_MAP_FORMAT)
+                            EmsConstant.EMS_CLIENT_K8S_CONFIG_MAP_FILE,
+                            EmsConstant.EMS_CLIENT_K8S_CONFIG_MAP_FORMAT)
                     .put(EmsConstant.COLLECTOR_ALLOWED_TOPICS_VAR, allowedTopics);
-            log.info("NebulousAppModelPlugin: END: Updated ems-client-configmap file: {}", EmsConstant.EMS_CLIENT_k8S_CONFIG_MAP_FILE);
+            log.debug("NebulousAppModelPlugin: END: Updated ems-client-configmap file: {}", EmsConstant.EMS_CLIENT_K8S_CONFIG_MAP_FILE);
         } catch (IOException e) {
             log.error("NebulousAppModelPlugin: EXCEPTION while updating ems-client-configmap file, during post-processing of new App Model: appModelId={}, requestInfo={}\nException: ",
                     appModelId, requestInfo, e);
