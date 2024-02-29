@@ -83,10 +83,10 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 				t -> t, t -> {
 					if (sloSet.contains(t)) {
 						// Send SLO violations to combined SLO topic
-						return new Publisher(t, properties.getCombinedSloTopic(), true, false);
+						return new Publisher(t, properties.getCombinedSloTopic(), true, true);
 					} else {
 						// Send non-SLO events to their corresponding Nebulous topics
-						return new Publisher(t, properties.getMetricsTopicPrefix() + t, true, false);
+						return new Publisher(t, properties.getMetricsTopicPrefix() + t, true, true);
 					}
 				}
 		));
