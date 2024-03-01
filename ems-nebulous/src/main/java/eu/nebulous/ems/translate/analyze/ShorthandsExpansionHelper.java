@@ -12,15 +12,18 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ParseContext;
+import gr.iccs.imu.ems.translate.model.MetricTemplate;
+import gr.iccs.imu.ems.translate.model.ValueType;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static eu.nebulous.ems.translate.analyze.AnalysisUtils.*;
 
@@ -61,6 +64,20 @@ public class ShorthandsExpansionHelper {
                 .toList();
         log.debug("ShorthandsExpansionHelper: Constraints expanded: {}", expandedConstraints);
 
+        // ----- Read Metric templates -----
+        Map<Object, Map> templateSpecs = new LinkedHashMap<>();
+        templateSpecs.putAll( readMetricTemplate("$.templates.*", ctx) );
+        templateSpecs.putAll( readMetricTemplate("$.spec.templates.*", ctx) );
+        log.debug("ShorthandsExpansionHelper: Metric Templates found: {}", templateSpecs);
+
+        // ----- Expand Metric templates in Metric specifications -----
+        List<Object> expandedTemplates = asList(ctx
+                .read("$.spec.*.*.metrics.*[?(@.template)]", List.class)).stream()
+                .filter(item -> JsonPath.read(item, "$.template") instanceof String)
+                .peek(item -> expandTemplate(item, templateSpecs))
+                .toList();
+        log.debug("ShorthandsExpansionHelper: Templates expanded: {}", expandedTemplates);
+
         // ----- Expand Metric windows -----
         List<Object> expandedWindows = asList(ctx
                 .read("$.spec.*.*.metrics.*[?(@.window)]", List.class)).stream()
@@ -98,6 +115,56 @@ public class ShorthandsExpansionHelper {
                 .peek(this::expandSensor)
                 .toList();
         log.debug("ShorthandsExpansionHelper: Sensors expanded: {}", expandedSensors);
+    }
+
+    private static Map<String, Map> readMetricTemplate(@NonNull String path, @NonNull DocumentContext ctx) {
+        try {
+            return asList(ctx
+                    .read(path, List.class)).stream()
+                    .filter(x -> x instanceof Map)
+                    .map(x -> (Map) x)
+                    .filter(x -> x.get("id") != null)
+                    .collect(Collectors.toMap(x -> x.get("id").toString(), x -> x));
+        } catch (Exception e) {
+            log.debug("ShorthandsExpansionHelper.readMetricTemplate: Not found metric templates in path: {}", path);
+            return Collections.emptyMap();
+        }
+    }
+
+    private void expandTemplate(Object spec, Map<Object, Map> templateSpecs) {
+        log.debug("ShorthandsExpansionHelper.expandTemplate: {}", spec);
+        String templateId = JsonPath.read(spec, "$.template").toString().trim();
+        Object tplSpec = templateSpecs.get(templateId);
+        if (tplSpec!=null) {
+            asMap(spec).put("template", tplSpec);
+        } else {
+            List<String> parts = Arrays.asList(templateId.split("[ \t\r\n]+"));
+            if (parts.size()>=4) {
+                MetricTemplate newTemplate;
+                if (StringUtils.equalsAnyIgnoreCase(parts.get(0), "double", "float")) {
+                    asMap(spec).put("template", MetricTemplate.builder()
+                            .valueType(ValueType.DOUBLE_TYPE)
+                            .lowerBound("-inf".equalsIgnoreCase(parts.get(1))
+                                    ? Double.NEGATIVE_INFINITY : Double.parseDouble(parts.get(1)))
+                            .upperBound(StringUtils.equalsAnyIgnoreCase(parts.get(2), "inf", "+inf")
+                                    ? Double.POSITIVE_INFINITY : Double.parseDouble(parts.get(2)))
+                            .unit(parts.get(3))
+                            .build());
+                } else
+                if (StringUtils.equalsAnyIgnoreCase(parts.get(0), "int", "integer")) {
+                    asMap(spec).put("template", MetricTemplate.builder()
+                            .valueType(ValueType.INT_TYPE)
+                            .lowerBound("-inf".equalsIgnoreCase(parts.get(1))
+                                    ? Integer.MIN_VALUE : Integer.parseInt(parts.get(1)))
+                            .upperBound(StringUtils.equalsAnyIgnoreCase(parts.get(2), "inf", "+inf")
+                                    ? Integer.MAX_VALUE : Integer.parseInt(parts.get(2)))
+                            .unit(parts.get(3))
+                            .build());
+                } else
+                    throw createException("Invalid Metric template shorthand expression: " + templateId);
+            } else
+                throw createException("Metric template id not found: " + templateId);
+        }
     }
 
     private void expandWindow(Object spec) {
