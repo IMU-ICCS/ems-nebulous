@@ -147,6 +147,13 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <!-- ANTLR4 dependency -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>4.13.1</version>
+        </dependency>
+
         <!-- Thymeleaf dependencies -->
         <dependency>
             <groupId>org.thymeleaf</groupId>
@@ -260,6 +267,23 @@
                     <generateGitPropertiesFilename>${project.build.directory}/git.properties</generateGitPropertiesFilename>
                     <commitIdGenerationMode>full</commitIdGenerationMode>
                     <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.13.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <listener>true</listener>
+                    <visitor>true</visitor>
                 </configuration>
             </plugin>
 
