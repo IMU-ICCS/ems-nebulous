@@ -148,11 +148,13 @@
         </dependency>
 
         <!-- ANTLR4 dependency -->
+        <!--XXX: Using version 4.7 required by Esper 7.1.0 (used in Broker-CEP)
+            XXX: Using latest ANTLR4 version results in conflict!
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>4.13.1</version>
-        </dependency>
+        </dependency>-->
 
         <!-- Thymeleaf dependencies -->
         <dependency>
@@ -273,7 +275,8 @@
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.13.1</version>
+                <!--<version>4.13.1</version>-->
+                <version>4.7</version>
                 <executions>
                     <execution>
                         <goals>
