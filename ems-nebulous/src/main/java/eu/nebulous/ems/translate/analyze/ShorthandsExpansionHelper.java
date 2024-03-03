@@ -41,8 +41,8 @@ import static eu.nebulous.ems.translate.analyze.AnalysisUtils.*;
 @Service
 @RequiredArgsConstructor
 public class ShorthandsExpansionHelper {
-    private final static Pattern METRIC_CONSTRAINT_PATTERN =
-            Pattern.compile("^([^<>=!]+)([<>]=|=[<>]|<>|!=|[=><])(.+)$");
+    /*private final static Pattern METRIC_CONSTRAINT_PATTERN =
+            Pattern.compile("^([^<>=!]+)([<>]=|=[<>]|<>|!=|[=><])(.+)$");*/
     private final static Pattern METRIC_WINDOW_PATTERN =
             Pattern.compile("^\\s*(\\w+)\\s+(\\d+(?:\\.\\d*)?|\\.\\d+)\\s*(?:(\\w+)\\s*)?");
     private final static Pattern METRIC_WINDOW_SIZE_PATTERN =
@@ -70,7 +70,8 @@ public class ShorthandsExpansionHelper {
         List<Object> expandedConstraints = asList(ctx
                 .read("$.spec.*.*.requirements.*[?(@.constraint)]", List.class)).stream()
                 .filter(item -> JsonPath.read(item, "$.constraint") instanceof String)
-                .peek(this::expandConstraint)
+//                .peek(this::expandConstraint)
+                .peek(this::expandConstraintExpression)
                 .toList();
         log.debug("ShorthandsExpansionHelper: Constraints expanded: {}", expandedConstraints);
 
@@ -246,7 +247,7 @@ public class ShorthandsExpansionHelper {
             throw createException("Invalid metric sensor shorthand expression: "+spec);
     }
 
-    private void expandConstraint(Object spec) {
+    /*private void expandConstraint(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandConstraint: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.constraint").toString().trim();
         log.trace("ShorthandsExpansionHelper.expandConstraint: BEFORE removeOuterBrackets: {}", constraintStr);
@@ -298,7 +299,7 @@ public class ShorthandsExpansionHelper {
             if (s.isEmpty()) return s;
         }
         return s;
-    }
+    }*/
 
     public void expandConstraintExpression(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandConstraintExpression: {}", spec);
@@ -425,6 +426,7 @@ public class ShorthandsExpansionHelper {
             }
 
             return makeMap(ctx,
+                    "type", "metric",
                     "metric", metric,
                     "threshold", threshold,
                     "operator", operator
@@ -436,11 +438,84 @@ public class ShorthandsExpansionHelper {
             log(ctx, "NotConstraint: {}", ctx.children.size());
             Map<String, Object> childMap = visitConstraint(ctx.constraint());
             log(ctx, "NotConstraint: --> Constraint to be NEGATED: {}", childMap);
-            return makeMap(ctx,
+            /*return makeMap(ctx,
                     "type", "logical",
                     "operator", "not",
                     "constraints", List.of( childMap )
-            );
+            );*/
+
+            childMap = negateConstraint(childMap);
+            log(ctx, "NotConstraint: --> Constraint NEGATED: {}", childMap);
+            return childMap;
+        }
+
+        private Map<String,Object> negateConstraint(Map<String, Object> map) {
+            log.trace("ConstraintVisitor.negateConstraint: BEGIN: {}", map);
+            if (map==null) return null;
+
+            String type = map.get("type").toString();
+            log.trace("ConstraintVisitor.negateConstraint: type: {}", type);
+            if (StringUtils.isBlank(type))
+                throw new IllegalArgumentException("Missing constraint type: map: "+map);
+
+            if ("metric".equalsIgnoreCase(type)) {
+                String operator = map.get("operator").toString();
+                log.error("ConstraintVisitor.negateConstraint: METRIC-CONSTRAINT: operator-BEFORE: {}", operator);
+
+                // Negate comparison operator
+                if (StringUtils.equalsAny(operator, "=", "==")) operator = "<>";
+                else if (StringUtils.equalsAny(operator, "<>")) operator = "=";
+                else if (StringUtils.equalsAny(operator, "<")) operator = ">=";
+                else if (StringUtils.equalsAny(operator, "<=", "=<")) operator = ">";
+                else if (StringUtils.equalsAny(operator, ">")) operator = "<=";
+                else if (StringUtils.equalsAny(operator, ">=", "=>")) operator = "<";
+                else
+                    throw new IllegalArgumentException("Invalid comparison operator: "+operator);
+
+                log.error("ConstraintVisitor.negateConstraint: METRIC-CONS: operator-AFTER: {}", operator);
+                map.put("operator", operator);
+                return map;
+            } else
+            if ("logical".equalsIgnoreCase(type)) {
+                String operator = map.get("operator").toString();
+                log.trace("ConstraintVisitor.negateConstraint: LOGICAL-CONSTRAINT: operator-BEFORE: {}", operator);
+
+                // Negate (second) Not-constraint
+                if ("not".equalsIgnoreCase(operator)) {
+                    Map<String, Object> result = (Map<String, Object>) asList(map.get("constraints")).get(0);
+                    log.trace("ConstraintVisitor.negateConstraint: NOT-CONSTRAINT: END: {}", result);
+                    return result;
+                }
+
+                // Negate and/or constraint
+                if ("and".equalsIgnoreCase(operator))
+                    operator = "or";
+                if ("or".equalsIgnoreCase(operator))
+                    operator = "and";
+                log.trace("ConstraintVisitor.negateConstraint: LOGICAL-CONSTRAINT: operator-AFTER: {}", operator);
+                map.put("operator", operator);
+                asList(map.get("constraints")).forEach(c -> negateConstraint((Map<String,Object>)c));
+                return map;
+            } else
+            if ("conditional".equalsIgnoreCase(type)) {
+                log.trace("ConstraintVisitor.negateConstraint: CONDITIONAL-CONSTRAINT: ");
+
+                // IF-THEN      <==> IF AND THEN                      --- Negation: IF AND NOT(THEN)  (See: https://www.math.toronto.edu/preparing-for-calculus/3_logic/we_3_negation.html)
+                // IF-ELSE      <==> NOT(IF) AND ELSE                 --- Negation: NOT(IF) AND NOT(ELSE)
+                // IF-THEN-ELSE <==> IF AND THEN XOR NOT(IF) AND ELSE --- Negation: IF AND NOT(THEN) XOR NOT(IF) AND NOT(ELSE)  ?????
+
+                Map<String, Object> ifConstraint = asMap(map.get("if"));
+                Map<String, Object> thenConstraint = asMap(map.get("then"));
+                Map<String, Object> elseConstraint = asMap(map.get("else"));
+                ////ifConstraint = negateConstraint(ifConstraint);
+                thenConstraint = negateConstraint(thenConstraint);
+                elseConstraint = negateConstraint(elseConstraint);
+                map.put("if",   ifConstraint);
+                map.put("then", thenConstraint);
+                map.put("else", elseConstraint);
+                return map;
+            } else
+                throw new IllegalArgumentException("Invalid constraint type: "+type);
         }
 
         @Override
