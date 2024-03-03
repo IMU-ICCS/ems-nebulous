@@ -32,8 +32,9 @@ metricConstraint
     ;
 
 comparisonOperator
-    : '==' | '<>' | '<=' | '=<' |'=' |  '<'
-    | '>' | '>=' | '=<'
+    : '=' | '==' | '<>'
+    | '<' | '<=' | '=<'
+    | '>' | '>=' | '=>'
     ;
 
 notConstraint
@@ -48,7 +49,7 @@ conditionalConstraint
     : IF orConstraint THEN orConstraint ( ELSE orConstraint )?
     ;
 
-PARENTHESES_OPEN: '(' ;
+PARENTHESES_OPEN:  '(' ;
 PARENTHESES_CLOSE: ')' ;
 
 NOT: N O T ;
