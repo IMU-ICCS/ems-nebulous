@@ -76,6 +76,8 @@ public abstract class AbstractExternalBrokerService {
 					@Override
 					public void onReady(Context context) {
 						log.warn("#################   AbstractExternalBrokerService: onReady: context: {}", context);
+						//((StatePublisher)context.getPublisher("state")).ready();
+						// ALSO SET LINE 83: 'false, false,' --> 'true, false,'
 					}
 				},
 				publishers, consumers,
