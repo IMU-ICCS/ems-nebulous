@@ -24,7 +24,9 @@ import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
 @Configuration
 @ConfigurationProperties(prefix = EMS_PROPERTIES_PREFIX + "external")
 public class ExternalBrokerServiceProperties implements InitializingBean {
-    private final static String NEBULOUS_TOPIC_PREFIX = "eu.nebulouscloud.";
+    public final static String NEBULOUS_TOPIC_PREFIX = "eu.nebulouscloud.";
+    public final static String COMPONENT_NAME = "monitoring";
+    public final static String BASE_TOPIC_PREFIX = NEBULOUS_TOPIC_PREFIX + COMPONENT_NAME + ".";
 
     private boolean enabled = true;
     private String brokerAddress;
@@ -35,15 +37,15 @@ public class ExternalBrokerServiceProperties implements InitializingBean {
     private int healthTimeout = 60;
     private int retryDelay = 10;
 
-    private String componentName = "monitoring";
     private String applicationIdPropertyName = "application";
 
-    private String commandsTopic         = NEBULOUS_TOPIC_PREFIX + String.format("%s.%s", componentName, "commands");
-    private String commandsResponseTopic = NEBULOUS_TOPIC_PREFIX + String.format("%s.%s", componentName, "commands.reply");
+    private String commandsTopic         = BASE_TOPIC_PREFIX + "commands";
+    private String commandsResponseTopic = BASE_TOPIC_PREFIX + "commands.reply";
     private String modelsTopic           = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model";
     private String modelsResponseTopic   = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model.reply";
-    private String metricsTopicPrefix    = NEBULOUS_TOPIC_PREFIX + String.format("%s.realtime.", componentName);
-    private String combinedSloTopic      = NEBULOUS_TOPIC_PREFIX + String.format("%s.slo.severity_value", componentName);
+
+    private String metricsTopicPrefix    = BASE_TOPIC_PREFIX + "realtime.";
+    private String combinedSloTopic      = BASE_TOPIC_PREFIX + "slo.severity_value";
 
     @Override
     public void afterPropertiesSet() {
