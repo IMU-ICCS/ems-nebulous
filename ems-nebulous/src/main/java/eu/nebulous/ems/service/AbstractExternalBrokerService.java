@@ -71,7 +71,7 @@ public abstract class AbstractExternalBrokerService {
 	@NonNull
 	private Connector createConnector(List<Publisher> publishers, List<Consumer> consumers) {
 		return new Connector(
-				properties.getComponentName(),
+                ExternalBrokerServiceProperties.COMPONENT_NAME,
 				new ConnectorHandler() {
 					@Override
 					public void onReady(Context context) {

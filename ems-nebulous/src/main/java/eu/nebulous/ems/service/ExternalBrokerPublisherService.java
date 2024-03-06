@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.service;
 
+import com.google.gson.Gson;
 import eu.nebulous.ems.translate.NebulousEmsTranslator;
 import eu.nebulouscloud.exn.core.Publisher;
 import gr.iccs.imu.ems.brokercep.BrokerCepService;
@@ -19,14 +20,17 @@ import gr.iccs.imu.ems.translate.TranslationContext;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQObjectMessage;
 import org.apache.activemq.command.ActiveMQTextMessage;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +42,8 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		implements PostTranslationPlugin, MessageListener
 {
 	private final BrokerCepService brokerCepService;
+	private final Map<String, String> additionalTopicsMap = new HashMap<>();
+	private final Gson gson = new Gson();
 	private Map<String, Publisher> publishersMap;
 	private String applicationId;
 
@@ -46,6 +52,14 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 	{
 		super(properties, taskScheduler);
 		this.brokerCepService = brokerCepService;
+	}
+
+	public void addAdditionalTopic(@NonNull String topic, @NonNull String externalBrokerTopic) {
+		if (StringUtils.isNotBlank(topic) && StringUtils.isNotBlank(externalBrokerTopic))
+			additionalTopicsMap.put(topic.trim(), externalBrokerTopic.trim());
+		else
+			log.warn("ExternalBrokerPublisherService: Ignoring call to 'addAdditionalTopic' with blank argument(s): topic={}, externalBrokerTopic={}",
+					topic, externalBrokerTopic);
 	}
 
 	@Override
@@ -78,7 +92,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 				.collect(Collectors.toSet());
 		log.trace("ExternalBrokerPublisherService:   SLOs-AFTER: {}", sloSet);
 
-		// Prepare publishers and connector to external broker
+		// Prepare publishers
 		publishersMap = topLevelTopics.stream().collect(Collectors.toMap(
 				t -> t, t -> {
 					if (sloSet.contains(t)) {
@@ -90,6 +104,17 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 					}
 				}
 		));
+
+		// Also prepare additional publishers
+		log.debug("ExternalBrokerPublisherService: additionalTopicsMap: {}", additionalTopicsMap);
+		if (! additionalTopicsMap.isEmpty()) {
+			additionalTopicsMap.forEach((topic, externalBrokerTopic) -> {
+				log.trace("ExternalBrokerPublisherService: additionalTopicsMap: Additional publisher for: {} --> {}", topic, externalBrokerTopic);
+				publishersMap.put(topic, new Publisher(topic, externalBrokerTopic, true, true));
+			});
+		}
+
+		// Create connector to external broker
 		connectToBroker(publishersMap.values().stream().toList(), List.of());
 
 		// Register for EMS broker events
@@ -116,7 +141,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 					log.warn("ExternalBrokerPublisherService: Error while sending message: {}, Exception: ", topic, e);
                 }
             } else
-				log.trace("ExternalBrokerPublisherService: No publisher found for topic: {}, message: {}", topic, message);
+				log.warn("ExternalBrokerPublisherService: No publisher found for topic: {}, message: {}", topic, message);
         } else
 			log.trace("ExternalBrokerPublisherService: Ignoring non-ActiveMQ message from internal broker: {}", message);
 	}
@@ -130,8 +155,21 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
         };
 	}
 
+	public boolean publishMessage(String topic, String bodyStr) {
+		Publisher publisher = publishersMap.get(topic);
+		if (publisher!=null)
+			publishMessage(publisher, gson.fromJson(bodyStr, Map.class));
+		return publisher!=null;
+	}
+
+	public boolean publishMessage(String topic, Map body) {
+		Publisher publisher = publishersMap.get(topic);
+		if (publisher!=null)
+			publishMessage(publisher, body);
+		return publisher!=null;
+	}
+
 	private void publishMessage(Publisher publisher, Map body) {
-		publisher.send(body, applicationId,
-				Map.of( /*"prop1", "zz", "prop2", "cc"*/));
+		publisher.send(body, applicationId, Map.of(/*"prop1", "zz", "prop2", "cc"*/));
 	}
 }

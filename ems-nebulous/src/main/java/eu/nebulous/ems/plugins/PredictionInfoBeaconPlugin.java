@@ -9,21 +9,36 @@
 
 package eu.nebulous.ems.plugins;
 
+import eu.nebulous.ems.service.ExternalBrokerPublisherService;
+import eu.nebulous.ems.service.ExternalBrokerServiceProperties;
 import gr.iccs.imu.ems.control.plugin.BeaconPlugin;
 import gr.iccs.imu.ems.control.properties.TopicBeaconProperties;
 import gr.iccs.imu.ems.control.util.TopicBeacon;
 import gr.iccs.imu.ems.translate.TranslationContext;
+import jakarta.jms.JMSException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import jakarta.jms.JMSException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PredictionInfoBeaconPlugin implements BeaconPlugin {
+    private final ExternalBrokerPublisherService externalBrokerPublisherService;
+    private final String externalBrokerMetricsToPredictTopic = ExternalBrokerServiceProperties.BASE_TOPIC_PREFIX + "metric_list";
+    private final String externalBrokerSloViolationDetectorTopics = ExternalBrokerServiceProperties.BASE_TOPIC_PREFIX + "slo.new";
+
+    public void init(TopicBeacon.BeaconContext context) {
+        log.debug("PredictionInfoBeaconPlugin.init(): Invoked");
+        externalBrokerPublisherService.addAdditionalTopic(externalBrokerMetricsToPredictTopic, externalBrokerMetricsToPredictTopic);
+        externalBrokerPublisherService.addAdditionalTopic(externalBrokerSloViolationDetectorTopics, externalBrokerSloViolationDetectorTopics);
+    }
+
     public void transmit(TopicBeacon.BeaconContext context) {
         log.debug("PredictionInfoBeaconPlugin.transmit(): Invoked");
         transmitPredictionInfo(context);
@@ -54,6 +69,8 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         // Get metric contexts of top-level DAG nodes
         String metricContexts = translationContext.getAdditionalResultsAs(
                 PredictionsPostTranslationPlugin.PREDICTION_TOP_LEVEL_NODES_METRICS, String.class);
+        Map metricContextsMap = translationContext.getAdditionalResultsAs(
+                PredictionsPostTranslationPlugin.PREDICTION_TOP_LEVEL_NODES_METRICS_MAP, Map.class);
         log.debug("Topic Beacon: transmitPredictionInfo: Metric Contexts for prediction: {}", metricContexts);
 
         // Skip event sending if payload is empty
@@ -66,6 +83,7 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         log.debug("Topic Beacon: Transmitting Prediction info: event={}, topics={}", metricContexts, properties.getPredictionTopics());
         try {
             context.sendMessageToTopics(metricContexts, properties.getPredictionTopics());
+            externalBrokerPublisherService.publishMessage(externalBrokerMetricsToPredictTopic, metricContextsMap);
         } catch (JMSException e) {
             log.error("Topic Beacon: EXCEPTION while transmitting Prediction info: event={}, topics={}, exception: ",
                     metricContexts, properties.getPredictionTopics(), e);
@@ -88,6 +106,8 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         // Get SLO metric decompositions (String) from TranslationContext
         String sloMetricDecompositions = translationContext.getAdditionalResultsAs(
                 PredictionsPostTranslationPlugin.PREDICTION_SLO_METRIC_DECOMPOSITION, String.class);
+        Map sloMetricDecompositionsMap = translationContext.getAdditionalResultsAs(
+                PredictionsPostTranslationPlugin.PREDICTION_SLO_METRIC_DECOMPOSITION_MAP, Map.class);
         log.debug("Topic Beacon: transmitSloViolatorInfo: SLO metric decompositions: {}", sloMetricDecompositions);
 
         if (StringUtils.isBlank(sloMetricDecompositions)) {
@@ -99,6 +119,7 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         log.debug("Topic Beacon: Transmitting SLO Violator info: event={}, topics={}", sloMetricDecompositions, properties.getSloViolationDetectorTopics());
         try {
             context.sendMessageToTopics(sloMetricDecompositions, properties.getSloViolationDetectorTopics());
+            externalBrokerPublisherService.publishMessage(externalBrokerSloViolationDetectorTopics, sloMetricDecompositionsMap);
         } catch (JMSException e) {
             log.error("Topic Beacon: EXCEPTION while transmitting SLO Violator info: event={}, topics={}, exception: ",
                     sloMetricDecompositions, properties.getSloViolationDetectorTopics(), e);
