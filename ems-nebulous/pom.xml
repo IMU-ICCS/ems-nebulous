@@ -434,6 +434,7 @@
                                     <SCAN_PACKAGES>eu.nebulous.ems</SCAN_PACKAGES>
                                     <IP_SETTING>DEFAULT_IP</IP_SETTING>
                                     <SELF_HEALING_ENABLED>false</SELF_HEALING_ENABLED>
+                                    <!--<LOGGING_LEVEL_EU_NEBULOUSCLOUD_EXN>TRACE</LOGGING_LEVEL_EU_NEBULOUSCLOUD_EXN>-->
                                 </env>
                                 <assembly>
                                     <targetDir>/</targetDir>

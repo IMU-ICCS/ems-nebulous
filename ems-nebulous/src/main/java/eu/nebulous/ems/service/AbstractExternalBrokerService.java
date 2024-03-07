@@ -75,7 +75,8 @@ public abstract class AbstractExternalBrokerService {
 				new ConnectorHandler() {
 					@Override
 					public void onReady(Context context) {
-						log.warn("#################   AbstractExternalBrokerService: onReady: context: {}", context);
+						log.warn("#################   AbstractExternalBrokerService: onReady: connected to: {}@{}:{}",
+								properties.getBrokerUsername(), properties.getBrokerAddress(), properties.getBrokerPort());
 						//((StatePublisher)context.getPublisher("state")).ready();
 						// ALSO SET LINE 83: 'false, false,' --> 'true, false,'
 					}
