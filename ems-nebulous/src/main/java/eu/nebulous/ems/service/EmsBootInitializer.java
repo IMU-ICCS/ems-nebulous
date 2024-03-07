@@ -27,11 +27,16 @@ import java.util.Map;
 @Slf4j
 @Service
 public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
+	private final ExternalBrokerListenerService listener;
 	private Consumer consumer;
 	private Publisher publisher;
 
-	public EmsBootInitializer(ExternalBrokerServiceProperties properties, TaskScheduler scheduler) {
+	public EmsBootInitializer(ExternalBrokerServiceProperties properties,
+							  ExternalBrokerListenerService listener,
+							  TaskScheduler scheduler)
+	{
 		super(properties, scheduler);
+		this.listener = listener;
 	}
 
 	@Override
@@ -49,7 +54,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		Handler messageHandler = new Handler() {
 			@Override
 			public void onMessage(String key, String address, Map body, Message message, Context context) {
-				log.warn("EmsBootInitializer: Received a new EMS Boot Response message: key={}, address={}, body={}, message={}",
+				log.debug("EmsBootInitializer: Received a new EMS Boot Response message: key={}, address={}, body={}, message={}",
 						key, address, body, message);
 				processEmsBootResponseMessage(body);
 			}
@@ -72,10 +77,19 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	}
 
 	protected void processEmsBootResponseMessage(Map body) {
-		// Process EMS Boot Response message
-		String appId = body.get("application").toString();
-		String modelStr = body.get("yaml").toString();
-		log.warn("EmsBootInitializer: App-Id: {}", appId);
-		log.warn("EmsBootInitializer:  Model: \n{}", modelStr);
+		try {
+			// Process EMS Boot Response message
+			String appId = body.get("application").toString();
+			String modelStr = body.get("yaml").toString();
+			log.warn("EmsBootInitializer: Received a new EMS Boot Response: App-Id: {}, Model:\n{}", appId, modelStr);
+
+			try {
+				listener.processMetricModel(appId, modelStr, null);
+			} catch (Exception e) {
+				log.warn("EmsBootInitializer: EXCEPTION while processing Metric Model for: app-id={} -- Exception: ", appId, e);
+			}
+		} catch (Exception e) {
+			log.warn("EmsBootInitializer: EXCEPTION while processing EMS Boot Response message: ", e);
+		}
 	}
 }

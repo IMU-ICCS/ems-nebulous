@@ -177,72 +177,85 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		if (properties.getCommandsTopic().equals(command.address)) {
 			// Process command
 			log.warn("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
-
-			// Get application id
-			String appId = getAppId(command, commandsResponsePublisher);
-			if (appId == null) return;
-
-			// Get command string
-			String commandStr = command.body.getOrDefault("command", "").toString();
-			log.warn("ExternalBrokerListenerService: Command: {}", commandStr);
-
-			sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+command.body);
+			processCommandMessage(command);
 		} else
 		if (properties.getModelsTopic().equals(command.address)) {
 			// Process metric model message
 			log.warn("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
-
-			// Get application id
-			String appId = getAppId(command, modelsResponsePublisher);
-			if (appId == null) return;
-
-			// Get model string and/or model file
-			Object modelObj = command.body.getOrDefault("model", null);
-			if (modelObj==null) {
-				modelObj = command.body.getOrDefault("yaml", null);
-			}
-			if (modelObj==null) {
-				modelObj = command.body.getOrDefault("body", null);
-			}
-			String modelFile = command.body.getOrDefault("model-path", "").toString();
-
-			// Check if 'model' or 'model-path' is provided
-			if (modelObj==null && StringUtils.isBlank(modelFile)) {
-				log.warn("ExternalBrokerListenerService: No model found in Metric Model message: {}", command.body);
-				sendResponse(modelsResponsePublisher, appId, "ERROR: No model found in Metric Model message: "+command.body);
-				return;
-			}
-
-			String modelStr = null;
-			if (modelObj!=null) {
-				log.warn("ExternalBrokerListenerService: modelObj: class={}, object={}", modelObj.getClass(), modelObj);
-				modelStr = (modelObj instanceof String) ? (String) modelObj : modelObj.toString();
-				if (modelObj instanceof String) {
-					modelStr = (String) modelObj;
-				}
-				if (modelObj instanceof Map) {
-					modelStr = objectMapper.writeValueAsString(modelObj);
-				}
-			}
-
-			// If 'model' string is provided, store it in a file
-			if (StringUtils.isNotBlank(modelStr)) {
-				modelFile = StringUtils.isBlank(modelFile) ? getModelFile(appId) : modelFile;
-				storeModel(modelFile, modelStr);
-			} else {
-				log.warn("ExternalBrokerListenerService: modelStr is blank. modelFile={}", modelFile);
-			}
-
-			// Call control-service to process model, also pass a callback to get the result
-			final String appId_1 = appId;
-			applicationContext.getBean(ControlServiceCoordinator.class).processAppModel(modelFile, null,
-					ControlServiceRequestInfo.create(appId, null, null, null,
-							(result) -> {
-								// Send message with the processing result
-								log.info("ExternalBrokerListenerService: Metric model processing result: {}", result);
-								sendResponse(modelsResponsePublisher, appId_1, result);
-							}));
+			processMetricModelMessage(command);
 		}
+	}
+
+	private void processCommandMessage(Command command) throws ClientException {
+		// Get application id
+		String appId = getAppId(command, commandsResponsePublisher);
+		if (appId == null) return;
+
+		// Get command string
+		String commandStr = command.body.getOrDefault("command", "").toString();
+		log.warn("ExternalBrokerListenerService: Command: {}", commandStr);
+
+		sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+ command.body);
+	}
+
+	private void processMetricModelMessage(Command command) throws ClientException, IOException {
+		// Get application id
+		String appId = getAppId(command, modelsResponsePublisher);
+		if (appId == null) return;
+
+		// Get model string and/or model file
+		Object modelObj = command.body.getOrDefault("model", null);
+		if (modelObj==null) {
+			modelObj = command.body.getOrDefault("yaml", null);
+		}
+		if (modelObj==null) {
+			modelObj = command.body.getOrDefault("body", null);
+		}
+		String modelFile = command.body.getOrDefault("model-path", "").toString();
+
+		// Check if 'model' or 'model-path' is provided
+		if (modelObj==null && StringUtils.isBlank(modelFile)) {
+			log.warn("ExternalBrokerListenerService: No model found in Metric Model message: {}", command.body);
+			sendResponse(modelsResponsePublisher, appId, "ERROR: No model found in Metric Model message: "+ command.body);
+			return;
+		}
+
+		String modelStr = null;
+		if (modelObj!=null) {
+			log.warn("ExternalBrokerListenerService: modelObj: class={}, object={}", modelObj.getClass(), modelObj);
+			modelStr = (modelObj instanceof String) ? (String) modelObj : modelObj.toString();
+			if (modelObj instanceof String) {
+				modelStr = (String) modelObj;
+			}
+			if (modelObj instanceof Map) {
+				modelStr = objectMapper.writeValueAsString(modelObj);
+			}
+		}
+
+		processMetricModel(appId, modelStr, modelFile);
+	}
+
+	void processMetricModel(String appId, String modelStr, String modelFile) throws IOException {
+		// If 'model' string is provided, store it in a file
+		if (StringUtils.isNotBlank(modelStr)) {
+			modelFile = StringUtils.isBlank(modelFile) ? getModelFile(appId) : modelFile;
+			storeModel(modelFile, modelStr);
+		} else if (StringUtils.isNotBlank(modelStr)) {
+			log.warn("ExternalBrokerListenerService: Parameter 'modelStr' is blank. Trying modelFile: {}", modelFile);
+		} else {
+			log.warn("ExternalBrokerListenerService: Parameters 'modelStr' and 'modelFile' are both blank");
+			throw new IllegalArgumentException("Parameters 'modelStr' and 'modelFile' are both blank");
+		}
+
+		// Call control-service to process model, also pass a callback to get the result
+		final String appId_1 = appId;
+		applicationContext.getBean(ControlServiceCoordinator.class).processAppModel(modelFile, null,
+				ControlServiceRequestInfo.create(appId, null, null, null,
+						(result) -> {
+							// Send message with the processing result
+							log.info("ExternalBrokerListenerService: Metric model processing result: {}", result);
+							sendResponse(modelsResponsePublisher, appId_1, result);
+						}));
 	}
 
 	private String getAppId(Command command, Publisher publisher) throws ClientException {
