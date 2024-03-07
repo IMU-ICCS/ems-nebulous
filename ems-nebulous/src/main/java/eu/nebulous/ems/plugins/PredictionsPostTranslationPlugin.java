@@ -146,7 +146,7 @@ public class PredictionsPostTranslationPlugin implements PostTranslationPlugin {
             MetricConstraint mc = mcMap.get(elementName);
             return Map.of(
                     "name", NebulousEmsTranslator.nameNormalization.apply(mc.getName()),
-                    "comparisonOperator", mc.getComparisonOperator().getOperator(),
+                    "operator", mc.getComparisonOperator().getOperator(),
                     "threshold", mc.getThreshold());
         } else
         if (constraintNode instanceof LogicalConstraint) {
