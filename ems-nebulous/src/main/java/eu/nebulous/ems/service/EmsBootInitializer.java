@@ -8,24 +8,74 @@
 
 package eu.nebulous.ems.service;
 
-import lombok.RequiredArgsConstructor;
+import eu.nebulouscloud.exn.core.Consumer;
+import eu.nebulouscloud.exn.core.Context;
+import eu.nebulouscloud.exn.core.Handler;
+import eu.nebulouscloud.exn.core.Publisher;
+import gr.iccs.imu.ems.util.NetUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.qpid.protonj2.client.Message;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class EmsBootInitializer implements ApplicationListener<ApplicationReadyEvent> {
-	private final ExternalBrokerPublisherService publisherService;
-	private final TaskScheduler scheduler;
+public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
+	private Consumer consumer;
+	private Publisher publisher;
+
+	public EmsBootInitializer(ExternalBrokerServiceProperties properties, TaskScheduler scheduler) {
+		super(properties, scheduler);
+	}
+
 	@Override
 	public void onApplicationEvent(ApplicationReadyEvent event) {
 		log.info("===================> EMS is ready -- Scheduling EMS Boot message ");
-		scheduler.schedule(publisherService::sendEmsBootReadyEvent, Instant.now().plusSeconds(1));
+
+		// Start connector used for EMS Booting
+		startConnector();
+
+		// Schedule sending EMS Boot message
+		taskScheduler.schedule(this::sendEmsBootReadyEvent, Instant.now().plusSeconds(1));
+	}
+
+	private void startConnector() {
+		Handler messageHandler = new Handler() {
+			@Override
+			public void onMessage(String key, String address, Map body, Message message, Context context) {
+				log.warn("EmsBootInitializer: Received a new EMS Boot Response message: key={}, address={}, body={}, message={}",
+						key, address, body, message);
+				processEmsBootResponseMessage(body);
+			}
+		};
+		consumer = new Consumer(properties.getEmsBootResponseTopic(), properties.getEmsBootResponseTopic(), messageHandler, null, true, true);
+		publisher = new Publisher(properties.getEmsBootTopic(), properties.getEmsBootTopic(), true, true);
+		connectToBroker(List.of(publisher), List.of(consumer));
+	}
+
+	protected void sendEmsBootReadyEvent() {
+//XXX:TODO: Work in PROGRESS...
+		Map<String, String> message = Map.of(
+				"internal-address", NetUtil.getDefaultIpAddress(),
+				"public-address", NetUtil.getPublicIpAddress(),
+				"address", NetUtil.getIpAddress()
+		);
+		log.debug("ExternalBrokerPublisherService: Sending message to EMS Boot: {}", message);
+		publisher.send(message, null,true);
+		log.debug("ExternalBrokerPublisherService: Sent message to EMS Boot");
+	}
+
+	protected void processEmsBootResponseMessage(Map body) {
+		// Process EMS Boot Response message
+		String appId = body.get("application").toString();
+		String modelStr = body.get("yaml").toString();
+		log.warn("EmsBootInitializer: App-Id: {}", appId);
+		log.warn("EmsBootInitializer:  Model: \n{}", modelStr);
 	}
 }

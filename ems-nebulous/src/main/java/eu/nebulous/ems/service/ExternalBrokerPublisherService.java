@@ -17,7 +17,6 @@ import gr.iccs.imu.ems.control.plugin.PostTranslationPlugin;
 import gr.iccs.imu.ems.control.util.TopicBeacon;
 import gr.iccs.imu.ems.translate.Grouping;
 import gr.iccs.imu.ems.translate.TranslationContext;
-import gr.iccs.imu.ems.util.NetUtil;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
@@ -122,20 +121,6 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		brokerCepService.getBrokerCepBridge().getListeners().add(this);
 
 		log.info("ExternalBrokerPublisherService: initialized publishers");
-	}
-
-	public void sendEmsBootReadyEvent() {
-		Publisher publisher = new Publisher(properties.getEmsBootTopic(), properties.getEmsBootTopic(), true, true);
-		connectToBroker(List.of(publisher), List.of());
-//XXX:TODO: Work in PROGRESS...
-		Map<String, String> message = Map.of(
-				"internal-address", NetUtil.getDefaultIpAddress(),
-				"public-address", NetUtil.getPublicIpAddress(),
-				"address", NetUtil.getIpAddress()
-		);
-		log.debug("ExternalBrokerPublisherService: Sending message to EMS Boot: {}", message);
-		publisher.send(message, null,true);
-		log.debug("ExternalBrokerPublisherService: Sent message to EMS Boot");
 	}
 
 	@Override
