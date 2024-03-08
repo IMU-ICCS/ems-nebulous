@@ -249,12 +249,13 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		// Call control-service to process model, also pass a callback to get the result
 		final String appId_1 = appId;
+		final Publisher modelsResponsePublisher_1 = modelsResponsePublisher;
 		applicationContext.getBean(ControlServiceCoordinator.class).processAppModel(modelFile, null,
 				ControlServiceRequestInfo.create(appId, null, null, null,
 						(result) -> {
 							// Send message with the processing result
 							log.info("ExternalBrokerListenerService: Metric model processing result: {}", result);
-							sendResponse(modelsResponsePublisher, appId_1, result);
+							sendResponse(modelsResponsePublisher_1, appId_1, result);
 						}));
 	}
 

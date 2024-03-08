@@ -78,7 +78,16 @@ public abstract class AbstractExternalBrokerService {
 						log.warn("#################   AbstractExternalBrokerService: onReady: connected to: {}@{}:{}",
 								properties.getBrokerUsername(), properties.getBrokerAddress(), properties.getBrokerPort());
 						//((StatePublisher)context.getPublisher("state")).ready();
-						// ALSO SET LINE 83: 'false, false,' --> 'true, false,'
+						// ALSO SET 'enableState=true' AT LINE 83: 'false, false,' --> 'true, false,'
+						/*
+						if(context.hasPublisher("state")){
+							StatePublisher sp = (StatePublisher) context.getPublisher("state");
+							sp.starting();
+							sp.started();
+							sp.custom("forecasting");
+							sp.stopping();
+							sp.stopped();
+						}*/
 					}
 				},
 				publishers, consumers,
