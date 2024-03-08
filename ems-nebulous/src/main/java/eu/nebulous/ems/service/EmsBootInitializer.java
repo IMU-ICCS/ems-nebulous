@@ -81,7 +81,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			// Process EMS Boot Response message
 			String appId = body.get("application").toString();
 			String modelStr = body.get("yaml").toString();
-			log.warn("EmsBootInitializer: Received a new EMS Boot Response: App-Id: {}, Model:\n{}", appId, modelStr);
+			log.info("EmsBootInitializer: Received a new EMS Boot Response: App-Id: {}, Model:\n{}", appId, modelStr);
 
 			try {
 				listener.processMetricModel(appId, modelStr, null);

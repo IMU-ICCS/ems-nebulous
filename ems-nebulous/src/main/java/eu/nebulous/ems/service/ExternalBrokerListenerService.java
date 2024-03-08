@@ -94,11 +94,11 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		}
 
 		this.applicationId = translationContext.getAppId();
-		log.warn("ExternalBrokerListenerService: Set applicationId to: {}", applicationId);
+		log.info("ExternalBrokerListenerService: Set applicationId to: {}", applicationId);
 
 		// Call control-service to deploy EMS clients
         try {
-			log.warn("ExternalBrokerListenerService: Start deploying EMS clients...");
+			log.info("ExternalBrokerListenerService: Start deploying EMS clients...");
 			String id = "dummy-"+System.currentTimeMillis();
 			Map<String, Object> nodeInfo = new HashMap<>(Map.of(
 					"id", id,
@@ -109,7 +109,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			));
 			applicationContext.getBean(NodeRegistrationCoordinator.class)
                     .registerNode("", nodeInfo, translationContext);
-			log.warn("ExternalBrokerListenerService: EMS clients deployment started");
+			log.debug("ExternalBrokerListenerService: EMS clients deployment started");
         } catch (Exception e) {
 			log.warn("ExternalBrokerListenerService: EXCEPTION while starting EMS client deployment: ", e);
         }
@@ -126,7 +126,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			@Override
 			public void onMessage(String key, String address, Map body, Message message, Context context) {
 				try {
-					log.warn("ExternalBrokerListenerService: messageHandler: Got new message: key={}, address={}, body={}, message={}",
+					log.info("ExternalBrokerListenerService: messageHandler: Got new message: key={}, address={}, body={}, message={}",
 							key, address, body, message);
 					super.onMessage(key, address, body, message, context);
 					commandQueue.add(new Command(key, address, body, message, context));
@@ -143,13 +143,13 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler, null, true, true),
 				new Consumer(properties.getModelsTopic(), properties.getModelsTopic(), messageHandler, null, true, true)
 		);
-		log.warn("ExternalBrokerListenerService: created subscribers");
+		log.info("ExternalBrokerListenerService: created subscribers");
 	}
 
 	private void initializePublishers() {
 		commandsResponsePublisher = new Publisher(properties.getCommandsResponseTopic(), properties.getCommandsResponseTopic(), true, true);
 		modelsResponsePublisher = new Publisher(properties.getModelsResponseTopic(), properties.getModelsResponseTopic(), true, true);
-		log.warn("ExternalBrokerListenerService: created publishers");
+		log.info("ExternalBrokerListenerService: created publishers");
 	}
 
 	private void startCommandProcessor() {
@@ -169,19 +169,19 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 	}
 
 	private void processMessage(Command command) throws ClientException, IOException {
-		log.warn("ExternalBrokerListenerService: Command: {}", command);
-		log.warn("ExternalBrokerListenerService: Command: message: {}", command.message);
-		log.warn("ExternalBrokerListenerService: Command: body: {}", command.message.body());
+		log.debug("ExternalBrokerListenerService: Command: {}", command);
+		log.debug("ExternalBrokerListenerService: Command: message: {}", command.message);
+		log.debug("ExternalBrokerListenerService: Command: body: {}", command.message.body());
 		command.message.forEachProperty((s, o) ->
-				log.warn("ExternalBrokerListenerService: Command: --- property: {} = {}", s, o));
+				log.debug("ExternalBrokerListenerService: Command: --- property: {} = {}", s, o));
 		if (properties.getCommandsTopic().equals(command.address)) {
 			// Process command
-			log.warn("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
+			log.info("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
 			processCommandMessage(command);
 		} else
 		if (properties.getModelsTopic().equals(command.address)) {
 			// Process metric model message
-			log.warn("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
+			log.info("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
 			processMetricModelMessage(command);
 		}
 	}
@@ -193,7 +193,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		// Get command string
 		String commandStr = command.body.getOrDefault("command", "").toString();
-		log.warn("ExternalBrokerListenerService: Command: {}", commandStr);
+		log.debug("ExternalBrokerListenerService: Command: {}", commandStr);
 
 		sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+ command.body);
 	}
@@ -222,7 +222,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		String modelStr = null;
 		if (modelObj!=null) {
-			log.warn("ExternalBrokerListenerService: modelObj: class={}, object={}", modelObj.getClass(), modelObj);
+			log.debug("ExternalBrokerListenerService: modelObj: class={}, object={}", modelObj.getClass(), modelObj);
 			modelStr = (modelObj instanceof String) ? (String) modelObj : modelObj.toString();
 			if (modelObj instanceof String) {
 				modelStr = (String) modelObj;
@@ -264,18 +264,18 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		Object propApp = command.message.property(properties.getApplicationIdPropertyName());
 		String appId = propApp != null ? propApp.toString() : null;
 		if (StringUtils.isNotBlank(appId)) {
-			log.warn("ExternalBrokerListenerService: Application Id found in message properties: {}", appId);
+			log.debug("ExternalBrokerListenerService: Application Id found in message properties: {}", appId);
 			return appId;
 		}
-		log.warn("ExternalBrokerListenerService: No Application Id found in message properties: {}", command.body);
+		log.debug("ExternalBrokerListenerService: No Application Id found in message properties: {}", command.body);
 
 		// Check if 'applicationId' is provided in message body
 		appId = command.body.getOrDefault("application", "").toString();
 		if (StringUtils.isNotBlank(appId)) {
-			log.warn("ExternalBrokerListenerService: Application Id found in message body: {}", appId);
+			log.debug("ExternalBrokerListenerService: Application Id found in message body: {}", appId);
 			return appId;
 		}
-		log.warn("ExternalBrokerListenerService: No Application Id found in message body: {}", command.body);
+		log.debug("ExternalBrokerListenerService: No Application Id found in message body: {}", command.body);
 
 		// Not found 'applicationId'
 		log.warn("ExternalBrokerListenerService: No Application Id found in message: {}", command.body);
