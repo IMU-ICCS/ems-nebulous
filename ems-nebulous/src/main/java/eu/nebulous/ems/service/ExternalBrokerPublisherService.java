@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +42,13 @@ import java.util.stream.Collectors;
 public class ExternalBrokerPublisherService extends AbstractExternalBrokerService
 		implements PostTranslationPlugin, MessageListener
 {
+	private static final String COMBINED_SLO_PUBLISHER_KEY = "COMBINED_SLO_PUBLISHER_KEY_" + System.currentTimeMillis();
 	private final BrokerCepService brokerCepService;
 	private final Map<String, String> additionalTopicsMap = new HashMap<>();
 	private final Gson gson = new Gson();
 	private Map<String, Publisher> publishersMap;
 	private String applicationId;
+	private Set<String> sloSet;
 
 	protected ExternalBrokerPublisherService(ExternalBrokerServiceProperties properties,
 											 TaskScheduler taskScheduler, BrokerCepService brokerCepService)
@@ -87,7 +90,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 		// Find top-level topics that correspond to SLOs (or other requirements)
 		log.trace("ExternalBrokerPublisherService:  SLOs-BEFORE: {}", translationContext.getSLO());
-		Set<String> sloSet = translationContext.getSLO().stream()
+		sloSet = translationContext.getSLO().stream()
 				.map(NebulousEmsTranslator.nameNormalization)
 				.collect(Collectors.toSet());
 		log.trace("ExternalBrokerPublisherService:   SLOs-AFTER: {}", sloSet);
@@ -95,15 +98,21 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		// Prepare publishers
 		publishersMap = topLevelTopics.stream().collect(Collectors.toMap(
 				t -> t, t -> {
-					if (sloSet.contains(t)) {
+					/*if (sloSet.contains(t)) {
 						// Send SLO violations to combined SLO topic
 						return new Publisher(t, properties.getCombinedSloTopic(), true, true);
 					} else {
 						// Send non-SLO events to their corresponding Nebulous topics
 						return new Publisher(t, properties.getMetricsTopicPrefix() + t, true, true);
-					}
-				}
+					}*/
+					return new Publisher(t, properties.getMetricsTopicPrefix() + t, true, true);
+				},
+				(publisher, publisher2) -> publisher, HashMap::new
 		));
+
+		// Also add publisher for Event Type VI messages
+		publishersMap.put(COMBINED_SLO_PUBLISHER_KEY,
+				new Publisher(COMBINED_SLO_PUBLISHER_KEY, properties.getCombinedSloTopic(), true, true));
 
 		// Also prepare additional publishers
 		log.debug("ExternalBrokerPublisherService: additionalTopicsMap: {}", additionalTopicsMap);
@@ -131,10 +140,21 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 			if (publisher!=null) {
 				log.trace("ExternalBrokerPublisherService: Sending message to external broker: topic: {}, message: {}", topic, amqMessage);
                 try {
+					// Send metric event
 					Map body = getMessageAsMap(amqMessage);
 					if (body!=null) {
 						publishMessage(publisher, body);
 						log.trace("ExternalBrokerPublisherService: Sent message to external broker: topic: {}, message: {}", topic, body);
+
+						// If an SLO, also send an Event Type VI event to combined SLO topics
+						if (sloSet.contains(topic)) {
+							publishMessage(publishersMap.get(COMBINED_SLO_PUBLISHER_KEY), Map.of(
+									"severity", 0.5,
+									"predictionTime", Instant.now().toEpochMilli(),
+									"probability", 1.0
+							));
+							log.trace("ExternalBrokerPublisherService: Also sent message to combined SLO topic: topic: {}, message: {}", topic, body);
+						}
 					} else
 						log.warn("ExternalBrokerPublisherService: Could not get body from internal broker message: topic: {}, message: {}", topic, amqMessage);
                 } catch (JMSException e) {
