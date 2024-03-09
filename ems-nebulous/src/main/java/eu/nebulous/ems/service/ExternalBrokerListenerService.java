@@ -97,22 +97,25 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		log.info("ExternalBrokerListenerService: Set applicationId to: {}", applicationId);
 
 		// Call control-service to deploy EMS clients
-        try {
-			log.info("ExternalBrokerListenerService: Start deploying EMS clients...");
-			String id = "dummy-"+System.currentTimeMillis();
-			Map<String, Object> nodeInfo = new HashMap<>(Map.of(
-					"id", id,
-					"name", id,
-					"type", "K8S",
-					"provider", "Kubernetes",
-					"zone-id", ""
-			));
-			applicationContext.getBean(NodeRegistrationCoordinator.class)
-                    .registerNode("", nodeInfo, translationContext);
-			log.debug("ExternalBrokerListenerService: EMS clients deployment started");
-        } catch (Exception e) {
-			log.warn("ExternalBrokerListenerService: EXCEPTION while starting EMS client deployment: ", e);
-        }
+		if (properties.isDeployEmsClientsOnKubernetesEnabled()) {
+			try {
+				log.info("ExternalBrokerListenerService: Start deploying EMS clients...");
+				String id = "dummy-" + System.currentTimeMillis();
+				Map<String, Object> nodeInfo = new HashMap<>(Map.of(
+						"id", id,
+						"name", id,
+						"type", "K8S",
+						"provider", "Kubernetes",
+						"zone-id", ""
+				));
+				applicationContext.getBean(NodeRegistrationCoordinator.class)
+						.registerNode("", nodeInfo, translationContext);
+				log.debug("ExternalBrokerListenerService: EMS clients deployment started");
+			} catch (Exception e) {
+				log.warn("ExternalBrokerListenerService: EXCEPTION while starting EMS client deployment: ", e);
+			}
+		} else
+			log.info("ExternalBrokerListenerService: EMS clients deployment is disabled");
     }
 
 	private void initializeConsumers() {
