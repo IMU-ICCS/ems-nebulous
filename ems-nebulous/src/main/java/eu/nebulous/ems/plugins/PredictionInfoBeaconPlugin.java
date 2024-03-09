@@ -29,20 +29,26 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class PredictionInfoBeaconPlugin implements BeaconPlugin {
+    private final ExternalBrokerServiceProperties properties;
     private final ExternalBrokerPublisherService externalBrokerPublisherService;
     private final String externalBrokerMetricsToPredictTopic = ExternalBrokerServiceProperties.BASE_TOPIC_PREFIX + "metric_list";
     private final String externalBrokerSloViolationDetectorTopics = ExternalBrokerServiceProperties.BASE_TOPIC_PREFIX + "slo.new";
 
     public void init(TopicBeacon.BeaconContext context) {
         log.debug("PredictionInfoBeaconPlugin.init(): Invoked");
-        externalBrokerPublisherService.addAdditionalTopic(externalBrokerMetricsToPredictTopic, externalBrokerMetricsToPredictTopic);
-        externalBrokerPublisherService.addAdditionalTopic(externalBrokerSloViolationDetectorTopics, externalBrokerSloViolationDetectorTopics);
+        if (properties.isEnabled()) {
+            externalBrokerPublisherService.addAdditionalTopic(externalBrokerMetricsToPredictTopic, externalBrokerMetricsToPredictTopic);
+            externalBrokerPublisherService.addAdditionalTopic(externalBrokerSloViolationDetectorTopics, externalBrokerSloViolationDetectorTopics);
+            log.debug("PredictionInfoBeaconPlugin.init(): Initialized ExternalBrokerService");
+        } else
+            log.debug("PredictionInfoBeaconPlugin.init(): ExternalBrokerService is disabled due to configuration");
     }
 
     public void transmit(TopicBeacon.BeaconContext context) {
         log.debug("PredictionInfoBeaconPlugin.transmit(): Invoked");
         transmitPredictionInfo(context);
         transmitSloViolatorInfo(context);
+        log.trace("PredictionInfoBeaconPlugin.transmit(): Transmitted ");
     }
 
     private <T>Set<T> emptyIfNull(Set<T> s) {
@@ -83,7 +89,8 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         log.debug("Topic Beacon: Transmitting Prediction info: event={}, topics={}", metricContexts, properties.getPredictionTopics());
         try {
             context.sendMessageToTopics(metricContexts, properties.getPredictionTopics());
-            externalBrokerPublisherService.publishMessage(externalBrokerMetricsToPredictTopic, metricContextsMap);
+            if (properties.isEnabled())
+                externalBrokerPublisherService.publishMessage(externalBrokerMetricsToPredictTopic, metricContextsMap);
         } catch (JMSException e) {
             log.error("Topic Beacon: EXCEPTION while transmitting Prediction info: event={}, topics={}, exception: ",
                     metricContexts, properties.getPredictionTopics(), e);
@@ -119,7 +126,8 @@ public class PredictionInfoBeaconPlugin implements BeaconPlugin {
         log.debug("Topic Beacon: Transmitting SLO Violator info: event={}, topics={}", sloMetricDecompositions, properties.getSloViolationDetectorTopics());
         try {
             context.sendMessageToTopics(sloMetricDecompositions, properties.getSloViolationDetectorTopics());
-            externalBrokerPublisherService.publishMessage(externalBrokerSloViolationDetectorTopics, sloMetricDecompositionsMap);
+            if (properties.isEnabled())
+                externalBrokerPublisherService.publishMessage(externalBrokerSloViolationDetectorTopics, sloMetricDecompositionsMap);
         } catch (JMSException e) {
             log.error("Topic Beacon: EXCEPTION while transmitting SLO Violator info: event={}, topics={}, exception: ",
                     sloMetricDecompositions, properties.getSloViolationDetectorTopics(), e);

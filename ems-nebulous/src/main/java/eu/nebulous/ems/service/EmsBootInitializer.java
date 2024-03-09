@@ -41,7 +41,11 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 
 	@Override
 	public void onApplicationEvent(ApplicationReadyEvent event) {
-		log.info("===================> EMS is ready -- Scheduling EMS Boot message ");
+		if (! properties.isEnabled()) {
+			log.warn("===================> EMS is ready -- EMS Boot disabled due to configuration");
+			return;
+		}
+		log.info("===================> EMS is ready -- Scheduling EMS Boot message");
 
 		// Start connector used for EMS Booting
 		startConnector();
