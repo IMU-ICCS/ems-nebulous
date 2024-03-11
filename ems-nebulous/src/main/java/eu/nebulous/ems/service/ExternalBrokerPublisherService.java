@@ -176,6 +176,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 	}
 
 	public boolean publishMessage(String topic, String bodyStr) {
+		if (! properties.isEnabled()) return false;
 		Publisher publisher = publishersMap.get(topic);
 		if (publisher!=null)
 			publishMessage(publisher, gson.fromJson(bodyStr, Map.class));
@@ -183,6 +184,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 	}
 
 	public boolean publishMessage(String topic, Map body) {
+		if (! properties.isEnabled()) return false;
 		Publisher publisher = publishersMap.get(topic);
 		if (publisher!=null)
 			publishMessage(publisher, body);
