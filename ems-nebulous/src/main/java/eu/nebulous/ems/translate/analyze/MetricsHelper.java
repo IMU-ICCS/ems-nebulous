@@ -139,9 +139,9 @@ class MetricsHelper extends AbstractHelper {
         _TC.getDAG().addNode(parent, rawMetric);
 
         // Process child blocks
-        Sensor sensor = sensorsHelper.processSensor(_TC, sensorSpec, metricNamesKey, rawMetric);
         Schedule schedule = outputSpec!=null
                 ? processSchedule(outputSpec, metricNamesKey) : null;
+        Sensor sensor = sensorsHelper.processSensor(_TC, sensorSpec, metricNamesKey, rawMetric, schedule);
 
         // Complete TC update
         rawMetric.setSensor(sensor);
