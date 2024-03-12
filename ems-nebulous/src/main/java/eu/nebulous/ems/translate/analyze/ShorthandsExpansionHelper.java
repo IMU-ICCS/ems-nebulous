@@ -52,7 +52,7 @@ public class ShorthandsExpansionHelper {
     private final static Pattern METRIC_OUTPUT_SCHEDULE_PATTERN =
             Pattern.compile("^\\s*(\\d+(?:\\.\\d*)?|\\.\\d+)\\s*(\\w+)\\s*");
     private final static Pattern METRIC_SENSOR_PATTERN =
-            Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*");
+            Pattern.compile("^\\s*(\\w+)\\s+(\\w[\\w\\.]+\\w)\\s*");
 
     // ------------------------------------------------------------------------
     //  Methods for expanding shorthand expressions
@@ -237,7 +237,10 @@ public class ShorthandsExpansionHelper {
     private void expandSensor(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandSensor: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.sensor").toString().trim();
+        log.warn("!!!!!!!!   >>>>>>>>>>  constraintStr={}", constraintStr);
+        log.warn("!!!!!!!!   >>>>>>>>>>  PATTERN={}", METRIC_SENSOR_PATTERN.pattern());
         Matcher matcher = METRIC_SENSOR_PATTERN.matcher(constraintStr);
+        log.warn("!!!!!!!!   >>>>>>>>>>  MATCHER={}", matcher.matches());
         if (matcher.matches()) {
             asMap(spec).put("sensor", Map.of(
                     "type", matcher.group(1),
