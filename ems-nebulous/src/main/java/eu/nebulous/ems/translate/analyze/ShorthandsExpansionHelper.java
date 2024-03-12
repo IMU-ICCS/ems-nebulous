@@ -17,6 +17,7 @@ import eu.nebulous.ems.translate.analyze.antlr4.ConstraintsLexer;
 import eu.nebulous.ems.translate.analyze.antlr4.ConstraintsParser;
 import gr.iccs.imu.ems.translate.model.MetricTemplate;
 import gr.iccs.imu.ems.translate.model.ValueType;
+import gr.iccs.imu.ems.util.EmsConstant;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -242,7 +243,7 @@ public class ShorthandsExpansionHelper {
             asMap(spec).put("sensor", Map.of(
                     "type", matcher.group(1),
                     "config", Map.of(
-                            "context", matcher.group(2)
+                            EmsConstant.NETDATA_METRIC_KEY, matcher.group(2)
                     )
             ));
         } else
