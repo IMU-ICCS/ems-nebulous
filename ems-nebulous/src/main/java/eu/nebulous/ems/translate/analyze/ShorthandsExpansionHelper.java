@@ -237,10 +237,7 @@ public class ShorthandsExpansionHelper {
     private void expandSensor(Object spec) {
         log.debug("ShorthandsExpansionHelper.expandSensor: {}", spec);
         String constraintStr = JsonPath.read(spec, "$.sensor").toString().trim();
-        log.warn("!!!!!!!!   >>>>>>>>>>  constraintStr={}", constraintStr);
-        log.warn("!!!!!!!!   >>>>>>>>>>  PATTERN={}", METRIC_SENSOR_PATTERN.pattern());
         Matcher matcher = METRIC_SENSOR_PATTERN.matcher(constraintStr);
-        log.warn("!!!!!!!!   >>>>>>>>>>  MATCHER={}", matcher.matches());
         if (matcher.matches()) {
             asMap(spec).put("sensor", Map.of(
                     "type", matcher.group(1),
