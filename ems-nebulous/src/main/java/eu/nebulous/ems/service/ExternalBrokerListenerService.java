@@ -143,15 +143,15 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		// Create consumers for each topic of interest
 		consumers = List.of(
-				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler, null, true, true),
-				new Consumer(properties.getModelsTopic(), properties.getModelsTopic(), messageHandler, null, true, true)
+				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler, null, true, true)
+//XXX:TODO:DEL:				new Consumer(properties.getModelsTopic(), properties.getModelsTopic(), messageHandler, null, true, true)
 		);
 		log.info("ExternalBrokerListenerService: created subscribers");
 	}
 
 	private void initializePublishers() {
 		commandsResponsePublisher = new Publisher(properties.getCommandsResponseTopic(), properties.getCommandsResponseTopic(), true, true);
-		modelsResponsePublisher = new Publisher(properties.getModelsResponseTopic(), properties.getModelsResponseTopic(), true, true);
+//XXX:TODO:DEL:		modelsResponsePublisher = new Publisher(properties.getModelsResponseTopic(), properties.getModelsResponseTopic(), true, true);
 		log.info("ExternalBrokerListenerService: created publishers");
 	}
 
@@ -181,11 +181,11 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			// Process command
 			log.info("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
 			processCommandMessage(command);
-		} else
+		/*XXX:TODO:DEL: } else
 		if (properties.getModelsTopic().equals(command.address)) {
 			// Process metric model message
 			log.info("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
-			processMetricModelMessage(command);
+			processMetricModelMessage(command);*/
 		}
 	}
 
@@ -201,6 +201,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+ command.body);
 	}
 
+	//XXX:TODO: Move to EMS Boot service ???
 	private void processMetricModelMessage(Command command) throws ClientException, IOException {
 		// Get application id
 		String appId = getAppId(command, modelsResponsePublisher);
@@ -238,6 +239,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		processMetricModel(appId, modelStr, modelFile);
 	}
 
+	//XXX:TODO: Move to a new service
 	void processMetricModel(String appId, String modelStr, String modelFile) throws IOException {
 		// If 'model' string is provided, store it in a file
 		if (StringUtils.isNotBlank(modelStr)) {
@@ -258,6 +260,12 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 							log.info("ExternalBrokerListenerService: Metric model processing result: {}", result);
 							sendResponse(modelsResponsePublisher, appId, result);
 						}));
+	}
+
+	//XXX:TODO: Move to a new service
+	public void processBindings(String appId, Map<String, String> bindingsMap) {
+		applicationContext.getBean(MvvService.class).setBindings(bindingsMap);
+		log.info("ExternalBrokerListenerService: Set MVV bindings to: {}", bindingsMap);
 	}
 
 	private String getAppId(Command command, Publisher publisher) throws ClientException {

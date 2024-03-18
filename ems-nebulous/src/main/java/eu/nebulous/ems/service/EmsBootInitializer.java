@@ -14,6 +14,7 @@ import eu.nebulouscloud.exn.core.Handler;
 import eu.nebulouscloud.exn.core.Publisher;
 import gr.iccs.imu.ems.util.NetUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.qpid.protonj2.client.Message;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -28,6 +29,7 @@ import java.util.Map;
 @Service
 public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
 	private final ExternalBrokerListenerService listener;
+	private final String appId = System.getenv("APPLICATION_ID");
 	private Consumer consumer;
 	private Publisher publisher;
 
@@ -41,11 +43,15 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 
 	@Override
 	public void onApplicationEvent(ApplicationReadyEvent event) {
+		if (StringUtils.isBlank(appId)) {
+			log.warn("===================> EMS is ready -- Application Id is blank. EMS Boot disabled");
+			return;
+		}
 		if (! properties.isEnabled()) {
 			log.warn("===================> EMS is ready -- EMS Boot disabled due to configuration");
 			return;
 		}
-		log.info("===================> EMS is ready -- Scheduling EMS Boot message");
+		log.info("===================> EMS is ready -- Scheduling EMS Boot message -- App Id: {}", appId);
 
 		// Start connector used for EMS Booting
 		startConnector();
@@ -71,6 +77,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	protected void sendEmsBootReadyEvent() {
 //XXX:TODO: Work in PROGRESS...
 		Map<String, String> message = Map.of(
+				"application", appId,
 				"internal-address", NetUtil.getDefaultIpAddress(),
 				"public-address", NetUtil.getPublicIpAddress(),
 				"address", NetUtil.getIpAddress()
@@ -84,11 +91,18 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		try {
 			// Process EMS Boot Response message
 			String appId = body.get("application").toString();
-			String modelStr = body.get("yaml").toString();
-			log.info("EmsBootInitializer: Received a new EMS Boot Response: App-Id: {}, Model:\n{}", appId, modelStr);
+			String modelStr = body.get("metric-model").toString();
+			Map<String,String> bindingsMap = (Map) body.get("bindings");
+			log.info("""
+					EmsBootInitializer: Received an EMS Boot Response:
+					    App-Id: {}
+					  Bindings: {}
+					     Model:\n{}
+					""", appId, bindingsMap, modelStr);
 
 			try {
 				listener.processMetricModel(appId, modelStr, null);
+				listener.processBindings(appId, bindingsMap);
 			} catch (Exception e) {
 				log.warn("EmsBootInitializer: EXCEPTION while processing Metric Model for: app-id={} -- Exception: ", appId, e);
 			}

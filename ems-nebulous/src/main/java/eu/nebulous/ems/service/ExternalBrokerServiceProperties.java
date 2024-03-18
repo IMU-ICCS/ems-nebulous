@@ -41,8 +41,8 @@ public class ExternalBrokerServiceProperties implements InitializingBean {
 
     private String commandsTopic         = BASE_TOPIC_PREFIX + "commands";
     private String commandsResponseTopic = BASE_TOPIC_PREFIX + "commands.reply";
-    private String modelsTopic           = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model";
-    private String modelsResponseTopic   = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model.reply";
+//XXX:TODO:DEL:    private String modelsTopic           = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model";
+//XXX:TODO:DEL:    private String modelsResponseTopic   = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model.reply";
 
     private String metricsTopicPrefix    = BASE_TOPIC_PREFIX + "realtime.";
     private String combinedSloTopic      = BASE_TOPIC_PREFIX + "slo.severity_value";
