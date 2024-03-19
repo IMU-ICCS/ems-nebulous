@@ -87,7 +87,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			initializeConsumers();
 			initializePublishers();
 			startCommandProcessor();
-			connectToBroker(List.of(commandsResponsePublisher, modelsResponsePublisher), consumers);
+			connectToBroker(List.of(commandsResponsePublisher /*XXX:TODO:DEL, modelsResponsePublisher*/), consumers);
 			log.info("ExternalBrokerListenerService: Initialized listeners and publishers");
 		} else {
 			log.warn("ExternalBrokerListenerService: Not configured or misconfigured. Will not initialize");
