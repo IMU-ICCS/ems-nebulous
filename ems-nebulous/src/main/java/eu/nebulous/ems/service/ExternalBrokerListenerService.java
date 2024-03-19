@@ -279,7 +279,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 						(result) -> {
 							// Send message with the processing result
 							log.info("ExternalBrokerListenerService: Metric model processing result: {}", result);
-							sendResponse(modelsResponsePublisher, appId, result);
+							//XXX:TODO: Move?? sendResponse(modelsResponsePublisher, appId, result);
 						}));
 	}
 
