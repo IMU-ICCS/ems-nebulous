@@ -34,14 +34,18 @@ public class BootService {
 		// Load info from models store
 		Map<String, String> entry = indexService.getFromIndex(appId);
 		log.debug("Index entry for app-id: {},  entry: {}", appId, entry);
+		if (entry==null) {
+			log.warn("No EMS Boot entry found for app-id: {}", appId);
+			return;
+		}
 		String modelFile = entry.get(ModelsService.MODEL_FILE_KEY);
 		String bindingsFile = entry.get(ModelsService.BINDINGS_FILE_KEY);
 		log.info("""
-				Received EMS Boot request:
-				         App-Id: {}
-				     Model File: {}
-				  Bindings File: {}
-    			""", appId, modelFile, bindingsFile);
+                Received EMS Boot request:
+                         App-Id: {}
+                     Model File: {}
+                  Bindings File: {}
+                """, appId, modelFile, bindingsFile);
 
 		String modelStr = Files.readString(Paths.get(properties.getModelsDir(), modelFile));
 		log.debug("Model file contents:\n{}", modelStr);
