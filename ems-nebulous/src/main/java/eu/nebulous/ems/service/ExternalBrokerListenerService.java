@@ -48,6 +48,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 	private final ApplicationContext applicationContext;
 	private final ArrayBlockingQueue<Command> commandQueue = new ArrayBlockingQueue<>(100);
 	private final ObjectMapper objectMapper;
+	private final MvvService mvvService;
 	private List<Consumer> consumers;
 	private Publisher commandsResponsePublisher;
 	private Publisher modelsResponsePublisher;
@@ -60,11 +61,13 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 										 ExternalBrokerServiceProperties properties,
                                          TaskScheduler taskScheduler,
 										 ObjectMapper objectMapper,
+										 MvvService mvvService,
 										 NebulousEmsTranslatorProperties translatorProperties)
 	{
 		super(properties, taskScheduler);
 		this.applicationContext = applicationContext;
 		this.objectMapper = objectMapper;
+		this.mvvService = mvvService;
         this.translatorProperties = translatorProperties;
     }
 
@@ -74,7 +77,12 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			log.info("ExternalBrokerListenerService: Disabled due to configuration");
 			return;
 		}
+
 		log.info("ExternalBrokerListenerService: Application Id (from Env.): {}", applicationId);
+		if (StringUtils.isBlank(applicationId))
+			log.warn("ExternalBrokerListenerService: APPLICATION_ID env. var. is missing");
+			//throw new IllegalArgumentException("APPLICATION_ID not provided as an env. var");
+
 		if (checkProperties()) {
 			initializeConsumers();
 			initializePublishers();
@@ -143,7 +151,8 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		// Create consumers for each topic of interest
 		consumers = List.of(
-				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler, null, true, true)
+				new Consumer(properties.getCommandsTopic(), properties.getCommandsTopic(), messageHandler, null, true, true),
+				new Consumer(properties.getSolutionsTopic(), properties.getSolutionsTopic(), messageHandler, applicationId, true, true)
 //XXX:TODO:DEL:				new Consumer(properties.getModelsTopic(), properties.getModelsTopic(), messageHandler, null, true, true)
 		);
 		log.info("ExternalBrokerListenerService: created subscribers");
@@ -186,6 +195,18 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			// Process metric model message
 			log.info("ExternalBrokerListenerService: Received a new Metric Model message from external broker: {}", command.body);
 			processMetricModelMessage(command);*/
+		} else
+		if (properties.getSolutionsTopic().equals(command.address)) {
+			// Process new solution message
+			log.info("ExternalBrokerListenerService: Received a new Solution message from external broker: {}", command.body);
+			processSolutionMessage(command);
+		}
+	}
+
+	private void processSolutionMessage(Command command) {
+		if (command.body.get("VariableValues") instanceof Map varValues) {
+			log.info("ExternalBrokerListenerService: New Variable Values: {}", varValues);
+			mvvService.translateAndSetValues(varValues);
 		}
 	}
 

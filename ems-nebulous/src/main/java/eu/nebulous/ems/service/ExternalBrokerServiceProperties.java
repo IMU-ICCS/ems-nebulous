@@ -46,6 +46,7 @@ public class ExternalBrokerServiceProperties implements InitializingBean {
 
     private String metricsTopicPrefix    = BASE_TOPIC_PREFIX + "realtime.";
     private String combinedSloTopic      = BASE_TOPIC_PREFIX + "slo.severity_value";
+    private String solutionsTopic        = NEBULOUS_TOPIC_PREFIX + "optimiser.solver.solution";
 
     private String emsBootTopic          = NEBULOUS_TOPIC_PREFIX + "ems.boot";
     private String emsBootResponseTopic  = NEBULOUS_TOPIC_PREFIX + "ems.boot.reply";
