@@ -53,7 +53,7 @@ public class ModelsService implements InitializingBean {
 		indexService.initIndexFile();
 	}
 
-	String processDslGenericMessage(Command command, String appId) throws IOException {
+	String extractBindings(Command command, String appId) throws IOException {
 		// Process DEL Generic message
 		log.debug("Received a new DSL Generic message from external broker: {}", command.body());
 
@@ -67,8 +67,8 @@ public class ModelsService implements InitializingBean {
 				bindingsMap = list.stream()
 						.filter(uf -> "constant".equalsIgnoreCase( uf.getOrDefault("type", "").toString() ))
 						.collect(Collectors.toMap(
-								uf -> uf.getOrDefault("name", "").toString(),
-								uf -> ((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("value", "").toString()
+								uf -> ((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("value", "").toString(),
+								uf -> uf.getOrDefault("name", "").toString()
 						));
 				if (bindingsMap.isEmpty())
 					log.warn("No bindings found in DSL generic message: {}", command.body());

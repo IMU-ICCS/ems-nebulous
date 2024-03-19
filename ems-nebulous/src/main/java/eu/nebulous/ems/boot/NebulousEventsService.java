@@ -134,7 +134,7 @@ public class NebulousEventsService implements InitializingBean {
 		}
 
 		if (properties.getDslTopic().equals(command.address())) {
-			String result = modelsService.processDslGenericMessage(command, appId);
+			String result = modelsService.extractBindings(command, appId);
 			if (!"OK".equalsIgnoreCase(result))
 				sendResponse(modelsResponsePublisher, appId, result);
 		} else
