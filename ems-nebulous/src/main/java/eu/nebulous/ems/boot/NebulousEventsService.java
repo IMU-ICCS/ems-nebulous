@@ -47,6 +47,12 @@ public class NebulousEventsService implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		if (! properties.isEnabled()) {
+			log.info("EMS Boot is disabled");
+			return;
+		}
+
+		log.info("EMS Boot is enabled");
 		initializeConnector();
 		startCommandProcessor();
 	}

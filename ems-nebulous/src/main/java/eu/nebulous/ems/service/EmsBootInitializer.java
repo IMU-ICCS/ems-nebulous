@@ -107,7 +107,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 					EmsBootInitializer: Received an EMS Boot Response:
 					    App-Id: {}
 					  Bindings: {}
-					     Model:\n{}
+					     Model: {}
 					""", appId, bindingsMap, modelStr);
 
 			try {

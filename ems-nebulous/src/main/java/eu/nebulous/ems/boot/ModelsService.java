@@ -37,6 +37,10 @@ public class ModelsService implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		if (! properties.isEnabled()) {
+			log.info("ModelsService is disabled because EMS Boot is disabled");
+			return;
+		}
 		initModelsStore();
 	}
 
