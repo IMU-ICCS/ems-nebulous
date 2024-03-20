@@ -8,19 +8,27 @@
 
 package eu.nebulous.ems.service;
 
+import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
 import eu.nebulouscloud.exn.core.Publisher;
+import gr.iccs.imu.ems.control.controller.ControlServiceCoordinator;
+import gr.iccs.imu.ems.control.controller.ControlServiceRequestInfo;
 import gr.iccs.imu.ems.util.NetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.qpid.protonj2.client.Message;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -28,17 +36,20 @@ import java.util.Map;
 @Slf4j
 @Service
 public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
-	private final ExternalBrokerListenerService listener;
+	private final ApplicationContext applicationContext;
+	private final NebulousEmsTranslatorProperties translatorProperties;
 	private final String appId = System.getenv("APPLICATION_ID");
 	private Consumer consumer;
 	private Publisher publisher;
 
-	public EmsBootInitializer(ExternalBrokerServiceProperties properties,
-							  ExternalBrokerListenerService listener,
+	public EmsBootInitializer(ApplicationContext applicationContext,
+							  NebulousEmsTranslatorProperties translatorProperties,
+							  ExternalBrokerServiceProperties properties,
 							  TaskScheduler scheduler)
 	{
 		super(properties, scheduler);
-		this.listener = listener;
+		this.applicationContext = applicationContext;
+		this.translatorProperties = translatorProperties;
 	}
 
 	@Override
@@ -75,11 +86,10 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	}
 
 	protected void sendEmsBootReadyEvent() {
-//XXX:TODO: Work in PROGRESS...
 		Map<String, String> message = Map.of(
 				"application", appId,
-				"internal-address", NetUtil.getDefaultIpAddress(),
-				"public-address", NetUtil.getPublicIpAddress(),
+//				"internal-address", NetUtil.getDefaultIpAddress(),
+//				"public-address", NetUtil.getPublicIpAddress(),
 				"address", NetUtil.getIpAddress()
 		);
 		log.debug("ExternalBrokerPublisherService: Sending message to EMS Boot: {}", message);
@@ -101,13 +111,48 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 					""", appId, bindingsMap, modelStr);
 
 			try {
-				listener.processMetricModel(appId, modelStr, null);
-				listener.processBindings(appId, bindingsMap);
+				processMetricModel(appId, modelStr);
+				processBindings(appId, bindingsMap);
 			} catch (Exception e) {
 				log.warn("EmsBootInitializer: EXCEPTION while processing Metric Model for: app-id={} -- Exception: ", appId, e);
 			}
 		} catch (Exception e) {
 			log.warn("EmsBootInitializer: EXCEPTION while processing EMS Boot Response message: ", e);
 		}
+	}
+
+	public void processBindings(String appId, Map<String, String> bindingsMap) {
+		applicationContext.getBean(MvvService.class).setBindings(bindingsMap);
+		log.info("Set MVV bindings to: {}", bindingsMap);
+	}
+
+	public void processMetricModel(String appId, String modelStr) throws IOException {
+		// If 'model' string is provided, store it in a file
+		String modelFile;
+		if (StringUtils.isNotBlank(modelStr)) {
+			modelFile = getModelFile(appId);
+			storeModel(modelFile, modelStr);
+		} else {
+			log.warn("ExternalBrokerListenerService: Parameters 'modelStr' and 'modelFile' are both blank");
+			throw new IllegalArgumentException("Parameters 'modelStr' and 'modelFile' are both blank");
+		}
+
+		// Call control-service to process model, also pass a callback to get the result
+		applicationContext.getBean(ControlServiceCoordinator.class).processAppModel(modelFile, null,
+				ControlServiceRequestInfo.create(appId, null, null, null,
+						(result) -> {
+							// Send message with the processing result
+							log.info("Metric model processing result: {}", result);
+						}));
+	}
+
+	private String getModelFile(String appId) {
+		return String.format("model-%s--%d.yml", appId, System.currentTimeMillis());
+	}
+
+	private void storeModel(String fileName, String modelStr) throws IOException {
+		Path path = Paths.get(translatorProperties.getModelsDir(), fileName);
+		Files.writeString(path, modelStr);
+		log.info("ExternalBrokerListenerService: Stored metric model in file: {}", path);
 	}
 }

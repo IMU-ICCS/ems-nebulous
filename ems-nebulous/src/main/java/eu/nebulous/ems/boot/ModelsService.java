@@ -94,6 +94,11 @@ public class ModelsService implements InitializingBean {
 		// Process metric model message
 		log.debug("Received a new Metric Model message from external broker: {}", command.body());
 
+		if (StringUtils.isBlank(appId)) {
+			log.warn("AppId is blank");
+			return "ERROR: AppId is blank";
+		}
+
 		// Get model string and/or model file
 		Object modelObj = command.body().getOrDefault("model", null);
 		if (modelObj==null) {
@@ -105,7 +110,7 @@ public class ModelsService implements InitializingBean {
 		String modelFile = command.body().getOrDefault("model-path", "").toString();
 
 		// Check if 'model' or 'model-path' is provided
-		if (modelObj==null) {
+		if (modelObj==null && StringUtils.isBlank(modelFile)) {
 			log.warn("No model found in Metric Model message: {}", command.body());
 			return "ERROR: No model found in Metric Model message: "+command.body();
 		}
@@ -152,5 +157,6 @@ public class ModelsService implements InitializingBean {
 	private void storeModel(String fileName, String modelStr) throws IOException {
 		Path path = Paths.get(properties.getModelsDir(), fileName);
 		Files.writeString(path, modelStr);
+		log.info("Stored metric model in file: {}", path);
 	}
 }
