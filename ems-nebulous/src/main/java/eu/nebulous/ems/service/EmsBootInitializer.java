@@ -29,26 +29,34 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
 public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
 	private final ApplicationContext applicationContext;
+	private final EmsBootInitializerProperties bootInitializerProperties;
 	private final NebulousEmsTranslatorProperties translatorProperties;
 	private final String appId = System.getenv("APPLICATION_ID");
+	private final AtomicBoolean processingResponse = new AtomicBoolean(false);
+	private ScheduledFuture<?> bootFuture;
 	private Consumer consumer;
 	private Publisher publisher;
 
 	public EmsBootInitializer(ApplicationContext applicationContext,
+							  EmsBootInitializerProperties bootInitializerProperties,
 							  NebulousEmsTranslatorProperties translatorProperties,
 							  ExternalBrokerServiceProperties properties,
 							  TaskScheduler scheduler)
 	{
 		super(properties, scheduler);
 		this.applicationContext = applicationContext;
+		this.bootInitializerProperties = bootInitializerProperties;
 		this.translatorProperties = translatorProperties;
 	}
 
@@ -58,8 +66,12 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			log.warn("===================> EMS is ready -- Application Id is blank. EMS Boot disabled");
 			return;
 		}
-		if (! properties.isEnabled()) {
+		if (! bootInitializerProperties.isEnabled()) {
 			log.warn("===================> EMS is ready -- EMS Boot disabled due to configuration");
+			return;
+		}
+		if (! properties.isEnabled()) {
+			log.warn("===================> EMS is ready -- EMS Boot disabled because External broker service is disabled");
 			return;
 		}
 		log.info("===================> EMS is ready -- Scheduling EMS Boot message -- App Id: {}", appId);
@@ -68,7 +80,8 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		startConnector();
 
 		// Schedule sending EMS Boot message
-		taskScheduler.schedule(this::sendEmsBootReadyEvent, Instant.now().plusSeconds(1));
+		bootFuture = taskScheduler.scheduleAtFixedRate(this::sendEmsBootReadyEvent,
+				Instant.now().plus(bootInitializerProperties.getInitialWait()), bootInitializerProperties.getRetryPeriod());
 	}
 
 	private void startConnector() {
@@ -98,6 +111,11 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	}
 
 	protected void processEmsBootResponseMessage(Map body) {
+		if (! processingResponse.compareAndSet(false, true)) {
+			log.warn("EmsBootInitializer: A previous EMS Boot response is still being processed. Ignoring this one.");
+			return;
+		}
+
 		try {
 			// Process EMS Boot Response message
 			String appId = body.get("application").toString();
@@ -111,14 +129,21 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 					""", appId, bindingsMap, modelStr);
 
 			try {
+				// Process metric model and bindings
 				processMetricModel(appId, modelStr);
 				processBindings(appId, bindingsMap);
+
+				// Stop further EMS Boot requests
+				if (bootFuture!=null && ! bootFuture.isDone())
+					bootFuture.cancel(true);
 			} catch (Exception e) {
 				log.warn("EmsBootInitializer: EXCEPTION while processing Metric Model for: app-id={} -- Exception: ", appId, e);
 			}
 		} catch (Exception e) {
 			log.warn("EmsBootInitializer: EXCEPTION while processing EMS Boot Response message: ", e);
 		}
+
+		processingResponse.set(false);
 	}
 
 	public void processBindings(String appId, Map<String, String> bindingsMap) {
