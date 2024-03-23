@@ -158,6 +158,13 @@ public class ModelsService implements InitializingBean {
 				: String.format("%s--%d.%s", type, System.currentTimeMillis(), suffix);
 	}
 
+	String readModel(String fileName) throws IOException {
+		Path path = Paths.get(properties.getModelsDir(), fileName);
+		String modelStr = Files.readString(path);
+		log.info("Loaded metric model from file: {}", path);
+		return modelStr;
+	}
+
 	private void storeModel(String fileName, String modelStr) throws IOException {
 		Path path = Paths.get(properties.getModelsDir(), fileName);
 		Files.writeString(path, modelStr);

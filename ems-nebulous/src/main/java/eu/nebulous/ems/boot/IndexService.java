@@ -14,19 +14,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okio.Path;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class IndexService {
+	private final ApplicationContext applicationContext;
 	private final EmsBootProperties properties;
 	private final ObjectMapper objectMapper;
 	private final Object LOCK = new Object();
@@ -102,5 +104,65 @@ public class IndexService {
 		try (FileWriter writer = new FileWriter(properties.getModelsIndexFile())) {
 			objectMapper.writeValue(writer, indexContents);
 		}
+	}
+
+	private Map<String,Map<String,String>> castToMapMap(Map<String,Object> map) {
+		return map.entrySet().stream().collect(Collectors.toMap(
+				Map.Entry::getKey, e->(Map<String,String>) e.getValue()
+		));
+	}
+
+	// ------------------------------  Public API  ------------------------------
+	public Map<String,Map<String,String>> getAll() throws IOException {
+		return castToMapMap( loadIndexContents() );
+	}
+
+	public Set<String> getAppIds() throws IOException {
+		return loadIndexContents().keySet();
+	}
+
+	public Map<String, String> getAppData(@NonNull String appId) throws IOException {
+		return (Map<String,String>) loadIndexContents().get(appId);
+	}
+
+	public String getAppMetricModel(@NonNull String appId) throws IOException {
+		String fileName = getAppData(appId).get(ModelsService.MODEL_FILE_KEY);
+		return applicationContext.getBean(ModelsService.class).readModel(fileName);
+	}
+
+	public Map<String,String> getAppBindings(@NonNull String appId) throws IOException {
+		String fileName = getAppData(appId).get(ModelsService.BINDINGS_FILE_KEY);
+		String bindingsStr = applicationContext.getBean(ModelsService.class).readModel(fileName);
+		return objectMapper.readValue(bindingsStr, Map.class);
+	}
+
+	public synchronized boolean deleteAppData(@NonNull String appId) throws IOException {
+		@NonNull Map<String, Object> map = loadIndexContents();
+		boolean removed = map.remove(appId) != null;
+		storeIndexContents(map);
+		return removed;
+	}
+
+	public synchronized boolean deleteAll() throws IOException {
+		return deleteAll(false);
+	}
+
+	public synchronized boolean deleteAll(boolean deleteFiles) throws IOException {
+		log.info("Purging EMS Boot cache...");
+		if (deleteFiles) {
+			// Delete all files in models dir. (folders are excluded)
+			log.trace("Models Dir: {}", properties.getModelsDir());
+			File[] files = Path.get(properties.getModelsDir()).toFile().listFiles();
+			if (files!=null) {
+				Arrays.stream(files).filter(File::isFile)
+						.peek(f -> log.warn("  Deleting file: {}", f))
+						.forEach(File::delete);
+			}
+		}
+
+		// Initialize index file
+		storeIndexContents(Map.of());
+		log.info("Index file initialized");
+		return true;
 	}
 }
