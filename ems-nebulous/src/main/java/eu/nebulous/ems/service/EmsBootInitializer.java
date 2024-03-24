@@ -16,6 +16,7 @@ import eu.nebulouscloud.exn.core.Publisher;
 import gr.iccs.imu.ems.control.controller.ControlServiceCoordinator;
 import gr.iccs.imu.ems.control.controller.ControlServiceRequestInfo;
 import gr.iccs.imu.ems.util.NetUtil;
+import gr.iccs.imu.ems.util.PasswordUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.qpid.protonj2.client.Message;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class EmsBootInitializer extends AbstractExternalBrokerService implements ApplicationListener<ApplicationReadyEvent> {
 	private final ApplicationContext applicationContext;
 	private final EmsBootInitializerProperties bootInitializerProperties;
+	private final ExternalBrokerServiceProperties externalBrokerServiceProperties;
 	private final NebulousEmsTranslatorProperties translatorProperties;
 	private final String appId = System.getenv("APPLICATION_ID");
 	private final AtomicBoolean processingResponse = new AtomicBoolean(false);
@@ -50,6 +51,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 
 	public EmsBootInitializer(ApplicationContext applicationContext,
 							  EmsBootInitializerProperties bootInitializerProperties,
+							  ExternalBrokerServiceProperties externalBrokerServiceProperties,
 							  NebulousEmsTranslatorProperties translatorProperties,
 							  ExternalBrokerServiceProperties properties,
 							  TaskScheduler scheduler)
@@ -57,6 +59,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		super(properties, scheduler);
 		this.applicationContext = applicationContext;
 		this.bootInitializerProperties = bootInitializerProperties;
+		this.externalBrokerServiceProperties = externalBrokerServiceProperties;
 		this.translatorProperties = translatorProperties;
 	}
 
@@ -121,17 +124,30 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			String appId = body.get("application").toString();
 			String modelStr = body.get("metric-model").toString();
 			Map<String,String> bindingsMap = (Map) body.get("bindings");
+			Map<String,Object> connectionInfo = (Map) body.get("external-broker");
 			log.info("""
 					EmsBootInitializer: Received an EMS Boot Response:
 					    App-Id: {}
 					  Bindings: {}
 					     Model: {}
-					""", appId, bindingsMap, modelStr);
+					External Broker connection info:
+					   Address: {}
+					      Port: {}
+					  Username: {}
+					  Password: {}
+					""", appId, bindingsMap, modelStr,
+					connectionInfo.get("address"), connectionInfo.get("port"),
+					connectionInfo.get("username"), PasswordUtil.getInstance().encodePassword(
+							connectionInfo.getOrDefault("password","").toString())
+					);
 
 			try {
 				// Process metric model and bindings
 				processMetricModel(appId, modelStr);
 				processBindings(appId, bindingsMap);
+
+				// Update External broker setting
+				setExternalBrokerConnectionInfo(appId, connectionInfo);
 
 				// Stop further EMS Boot requests
 				if (bootFuture!=null && ! bootFuture.isDone())
@@ -144,6 +160,16 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		}
 
 		processingResponse.set(false);
+	}
+
+	private void setExternalBrokerConnectionInfo(String appId, Map<String, Object> connectionInfo) {
+		externalBrokerServiceProperties.setBrokerAddress( connectionInfo.get("address").toString() );
+		externalBrokerServiceProperties.setBrokerPort( (int) connectionInfo.get("port") );
+		externalBrokerServiceProperties.setBrokerUsername( connectionInfo.getOrDefault("username","").toString() );
+		externalBrokerServiceProperties.setBrokerPassword( connectionInfo.getOrDefault("password","").toString() );
+
+		// Signal External broker classes to initialize
+		throw new RuntimeException("NOT YET IMPLEMENTED");
 	}
 
 	public void processBindings(String appId, Map<String, String> bindingsMap) {
