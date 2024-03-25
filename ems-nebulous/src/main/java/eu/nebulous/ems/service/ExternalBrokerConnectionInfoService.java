@@ -54,12 +54,18 @@ public class ExternalBrokerConnectionInfoService implements InitializingBean {
 				log.debug("ExternalBrokerConnectionInfoService: collectExternalBrokerConnectionInfo: connectionInfo: {}", connectionInfo);
 
 				// Update 'externalBrokerServiceProperties'
-				brokerAddress = ((List<String>) connectionInfo.get("external-addresses")).get(0);
-				brokerPort = (int) connectionInfo.get("node-port");
+				if (connectionInfo!=null) {
+					if (connectionInfo.get("external-addresses")!=null
+							&& ! ((List)connectionInfo.get("external-addresses")).isEmpty())
+						brokerAddress = ((List<String>) connectionInfo.get("external-addresses")).get(0);
+					brokerPort = connectionInfo.containsKey("node-port")
+							? (int) connectionInfo.get("node-port") : -1;
+				}
+				log.info("ExternalBrokerConnectionInfoService: collectExternalBrokerConnectionInfo: mode={}, address={}, port={}",
+						externalBrokerServiceProperties.getConnectionInfoCollectionMode(), brokerAddress, brokerPort);
 
 			} catch (IOException e) {
 				log.warn("NebulousInstallationContextProcessorPlugin: EXCEPTION while querying Kubernetes API server: ", e);
-				throw new RuntimeException(e);
 			}
 		}
 	}
