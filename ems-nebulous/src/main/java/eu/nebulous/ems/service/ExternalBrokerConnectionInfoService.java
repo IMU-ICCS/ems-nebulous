@@ -30,8 +30,12 @@ public class ExternalBrokerConnectionInfoService implements InitializingBean {
 	private String brokerAddress;
 	private int brokerPort = -1;
 
+	@Getter
+	private static ExternalBrokerConnectionInfoService instance;
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		instance = this;
 		if (! externalBrokerServiceProperties.isEnabled()) {
 			log.debug("ExternalBrokerConnectionInfoService: External Broker service is disabled");
 			return;
@@ -61,13 +65,13 @@ public class ExternalBrokerConnectionInfoService implements InitializingBean {
 					brokerPort = connectionInfo.containsKey("node-port")
 							? (int) connectionInfo.get("node-port") : -1;
 				}
-				log.info("ExternalBrokerConnectionInfoService: collectExternalBrokerConnectionInfo: mode={}, address={}, port={}",
-						externalBrokerServiceProperties.getConnectionInfoCollectionMode(), brokerAddress, brokerPort);
 
 			} catch (IOException e) {
 				log.warn("NebulousInstallationContextProcessorPlugin: EXCEPTION while querying Kubernetes API server: ", e);
 			}
 		}
+		log.debug("ExternalBrokerConnectionInfoService: collectExternalBrokerConnectionInfo: END: mode={}, address={}, port={}",
+				externalBrokerServiceProperties.getConnectionInfoCollectionMode(), brokerAddress, brokerPort);
 	}
 
 	public boolean isEnabled() {

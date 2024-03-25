@@ -12,24 +12,28 @@ package eu.nebulous.ems.plugins;
 import eu.nebulous.ems.service.ExternalBrokerConnectionInfoService;
 import gr.iccs.imu.ems.baguette.client.install.ClientInstallationTask;
 import gr.iccs.imu.ems.baguette.client.install.InstallationContextProcessorPlugin;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NebulousInstallationContextProcessorPlugin implements InstallationContextProcessorPlugin {
-    private final ExternalBrokerConnectionInfoService connectionInfoService;
-
     @Override
     public void processBeforeInstallation(ClientInstallationTask task, long taskCounter) {
+        ExternalBrokerConnectionInfoService connectionInfoService = ExternalBrokerConnectionInfoService.getInstance();
+
         if (! connectionInfoService.isEnabled()) {
             log.warn("NebulousInstallationContextProcessorPlugin: External Broker service is disabled");
             return;
         }
+        if (StringUtils.isBlank(connectionInfoService.getBrokerAddress()) || connectionInfoService.getBrokerPort()<0) {
+            log.warn("NebulousInstallationContextProcessorPlugin: Missing external broker connection info");
+            return;
+        }
+
         Map<String, String> valusMap = task.getNodeRegistryEntry().getPreregistration();
         valusMap.put("EXTERNAL_BROKER_ADDRESS", connectionInfoService.getBrokerAddress());
         valusMap.put("EXTERNAL_BROKER_PORT", Integer.toString(connectionInfoService.getBrokerPort()));
