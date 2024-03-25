@@ -37,6 +37,12 @@ public class ExternalBrokerServiceProperties implements InitializingBean {
     private int healthTimeout = 60;
     private int retryDelay = 10;
 
+    // Used to automatically detect external broker address and port
+    public enum COLLECTION_MODE { CONFIG, K8S }
+    private COLLECTION_MODE connectionInfoCollectionMode = COLLECTION_MODE.CONFIG;
+    private String brokerServiceName = "nebulous-activemq";
+    private String brokerServiceNamespace = "default";
+
     private String applicationIdPropertyName = "application";
 
     private String commandsTopic         = BASE_TOPIC_PREFIX + "commands";
