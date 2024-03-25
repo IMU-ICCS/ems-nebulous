@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.boot;
 
+import eu.nebulous.ems.service.ExternalBrokerServiceProperties;
 import eu.nebulouscloud.exn.Connector;
 import eu.nebulouscloud.exn.core.*;
 import eu.nebulouscloud.exn.handlers.ConnectorHandler;
@@ -37,6 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 @RequiredArgsConstructor
 public class NebulousEventsService implements InitializingBean {
 	private final EmsBootProperties properties;
+	private final ExternalBrokerServiceProperties externalBrokerServiceProperties;
 	private final TaskScheduler taskScheduler;
 	private final BootService bootService;
 	private final ModelsService modelsService;
@@ -108,9 +110,11 @@ public class NebulousEventsService implements InitializingBean {
 				publishers, consumers,
 				true, true,
 				new StaticExnConfig(
-						properties.getBrokerAddress(), properties.getBrokerPort(),
-						properties.getBrokerUsername(), properties.getBrokerPassword(),
-						properties.getHealthTimeout())
+						externalBrokerServiceProperties.getBrokerAddress(),
+						externalBrokerServiceProperties.getBrokerPort(),
+						externalBrokerServiceProperties.getBrokerUsername(),
+						externalBrokerServiceProperties.getBrokerPassword(),
+						externalBrokerServiceProperties.getHealthTimeout())
 		);
 	}
 

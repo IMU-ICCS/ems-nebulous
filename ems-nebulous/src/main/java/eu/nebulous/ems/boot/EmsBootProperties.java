@@ -30,13 +30,6 @@ public class EmsBootProperties implements InitializingBean {
     }
 
     private boolean enabled;
-    private String brokerAddress;
-    private int brokerPort;
-    private String brokerUsername;
-    @ToString.Exclude
-    private String brokerPassword;
-    private int healthTimeout = 60;
-    private int retryDelay = 10;
 
     private long processorPeriod = 500; // millis
     private String applicationIdPropertyName = "application";
