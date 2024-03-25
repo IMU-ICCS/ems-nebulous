@@ -129,13 +129,13 @@ env:
   - name: EXTERNAL_ENABLED
     value: 'true'
   - name: EXTERNAL_BROKER_ADDRESS
-    value: ''
+    value: '${EXTERNAL_BROKER_ADDRESS}'
   - name: EXTERNAL_BROKER_PORT
-    value: '5672'
+    value: '${EXTERNAL_BROKER_PORT}'
   - name: EXTERNAL_BROKER_USERNAME
-    value: ''
+    value: '${EXTERNAL_BROKER_USERNAME}'
   - name: EXTERNAL_BROKER_PASSWORD
-    value: ''
+    value: '${EXTERNAL_BROKER_PASSWORD}'
 
   - name: EXTERNAL_CONNECTION_INFO_COLLECTION_MODE
     value: 'CONFIG'
