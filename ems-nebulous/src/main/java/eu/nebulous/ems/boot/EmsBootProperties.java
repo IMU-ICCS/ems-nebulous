@@ -48,16 +48,4 @@ public class EmsBootProperties implements InitializingBean {
     private String modelsResponseTopic   = NEBULOUS_TOPIC_PREFIX + "ui.dsl.metric_model.reply";
     private String emsBootTopic          = NEBULOUS_TOPIC_PREFIX + "ems.boot";
     private String emsBootResponseTopic  = NEBULOUS_TOPIC_PREFIX + "ems.boot.reply";
-
-    // These info will be passed to EMS Servers (EPM) deployed in App. clusters
-    private String externalBrokerAddress;
-    private int externalBrokerPort = 5672;
-    private String externalBrokerUsername;
-    @ToString.Exclude
-    private String externalBrokerPassword;
-
-    enum MODE { CONFIG, K8S }
-    private MODE externalBrokerInfoCollectionMode = MODE.CONFIG;
-    private String externalBrokerServiceName = "nebulous-activemq";
-    private String externalBrokerNamespace = "default";
 }
