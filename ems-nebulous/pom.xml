@@ -459,9 +459,27 @@
                                                 <source>${project.build.directory}/classes/metric-model-schematron.xml</source>
                                                 <outputDirectory>${docker.user.home}/BOOT-INF/classes</outputDirectory>
                                             </file>
+
                                             <file>
                                                 <source>${project.build.directory}/classes/empty.yml</source>
                                                 <outputDirectory>${docker.user.home}/models</outputDirectory>
+                                            </file>
+
+                                            <file>
+                                                <source>${project.basedir}/src/main/resources/helm/app-detection.yml</source>
+                                                <outputDirectory>${docker.user.home}/config/baguette-client-install/helm</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>${project.basedir}/src/main/resources/helm/epm-deploy.yml</source>
+                                                <outputDirectory>${docker.user.home}/config/baguette-client-install/helm</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>${project.basedir}/src/main/resources/helm/netdata-deploy.yml</source>
+                                                <outputDirectory>${docker.user.home}/config/baguette-client-install/helm</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>${project.basedir}/src/main/resources/app-ems-server/values.yaml</source>
+                                                <outputDirectory>${docker.user.home}/config/app-ems-server</outputDirectory>
                                             </file>
                                         </files>
                                     </inline>
