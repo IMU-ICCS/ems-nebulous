@@ -459,6 +459,10 @@
                                                 <source>${project.build.directory}/classes/metric-model-schematron.xml</source>
                                                 <outputDirectory>${docker.user.home}/BOOT-INF/classes</outputDirectory>
                                             </file>
+                                            <file>
+                                                <source>${project.build.directory}/classes/empty.yml</source>
+                                                <outputDirectory>${docker.user.home}/models</outputDirectory>
+                                            </file>
                                         </files>
                                     </inline>
                                 </assembly>
