@@ -80,38 +80,38 @@ public class K8sPodWatcher implements InitializingBean {
             } // End of try-with-resources
 
             // Update Node Registry
-            log.warn("K8sPodWatcher: Updating Node Registry");
-            Map<String, NodeRegistryEntry> addressToNodeEntryMap = nodeRegistry.getNodes().stream()
-                    .collect(Collectors.toMap(NodeRegistryEntry::getIpAddress, entry -> entry));
-
-            // New Pods
-            HashMap<String, Set<K8sClient.PodEntry>> newPods = new HashMap<>(addressToPodMap);
-            newPods.keySet().removeAll(addressToNodeEntryMap.keySet());
-            if (! newPods.isEmpty()) {
-                log.warn("K8sPodWatcher: New Pods found: {}", newPods);
-                newPods.forEach((address, podSet) -> {
-                    K8sClient.PodEntry pod = null;
-                    try {
-                        if (podSet.size() == 1) {
-                            pod = podSet.iterator().next();
-                            nodeRegistry.addNode(new HashMap<>(), pod.podUid());
-                        }
-                    } catch (UnknownHostException e) {
-                        log.warn("K8sPodWatcher: EXCEPTION: while adding new Pod in Node Registry: podSet: {}", pod);
-                    }
-                });
-            } else {
-                log.warn("K8sPodWatcher: No new Pods");
-            }
-
-            // Node Entries to be removed
-            HashMap<String, NodeRegistryEntry> oldEntries = new HashMap<>(addressToNodeEntryMap);
-            oldEntries.keySet().removeAll(addressToPodMap.keySet());
-            if (! oldEntries.isEmpty()) {
-                log.warn("K8sPodWatcher: Node entries to be removed: {}", oldEntries);
-            } else {
-                log.warn("K8sPodWatcher: No node entries to remove");
-            }
+//            log.warn("K8sPodWatcher: Updating Node Registry");
+//            Map<String, NodeRegistryEntry> addressToNodeEntryMap = nodeRegistry.getNodes().stream()
+//                    .collect(Collectors.toMap(NodeRegistryEntry::getIpAddress, entry -> entry));
+//
+//            // New Pods
+//            HashMap<String, Set<K8sClient.PodEntry>> newPods = new HashMap<>(addressToPodMap);
+//            newPods.keySet().removeAll(addressToNodeEntryMap.keySet());
+//            if (! newPods.isEmpty()) {
+//                log.warn("K8sPodWatcher: New Pods found: {}", newPods);
+//                newPods.forEach((address, podSet) -> {
+//                    K8sClient.PodEntry pod = null;
+//                    try {
+//                        if (podSet.size() == 1) {
+//                            pod = podSet.iterator().next();
+//                            nodeRegistry.addNode(new HashMap<>(), pod.podUid());
+//                        }
+//                    } catch (UnknownHostException e) {
+//                        log.warn("K8sPodWatcher: EXCEPTION: while adding new Pod in Node Registry: podSet: {}", pod);
+//                    }
+//                });
+//            } else {
+//                log.warn("K8sPodWatcher: No new Pods");
+//            }
+//
+//            // Node Entries to be removed
+//            HashMap<String, NodeRegistryEntry> oldEntries = new HashMap<>(addressToNodeEntryMap);
+//            oldEntries.keySet().removeAll(addressToPodMap.keySet());
+//            if (! oldEntries.isEmpty()) {
+//                log.warn("K8sPodWatcher: Node entries to be removed: {}", oldEntries);
+//            } else {
+//                log.warn("K8sPodWatcher: No node entries to remove");
+//            }
 
         } catch (Exception e) {
             log.warn("K8sPodWatcher: Error while running doWatch: ", e);
