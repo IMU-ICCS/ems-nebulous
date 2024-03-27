@@ -11,6 +11,7 @@ package eu.nebulous.ems.plugins;
 
 import gr.iccs.imu.ems.baguette.client.install.ClientInstallationTask;
 import gr.iccs.imu.ems.baguette.client.install.plugin.AllowedTopicsProcessorPlugin;
+import gr.iccs.imu.ems.baguette.client.install.plugin.CollectorConfigurationsProcessorPlugin;
 import gr.iccs.imu.ems.baguette.server.NodeRegistryEntry;
 import gr.iccs.imu.ems.control.controller.ControlServiceRequestInfo;
 import gr.iccs.imu.ems.control.plugin.AppModelPlugin;
@@ -29,6 +30,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class NebulousAppModelPlugin implements AppModelPlugin {
     private final AllowedTopicsProcessorPlugin allowedTopicsProcessorPlugin;
+    private final CollectorConfigurationsProcessorPlugin collectorConfigurationsProcessorPlugin;
     private final ConfigWriteService configWriteService;
 
     @Override
@@ -47,6 +49,7 @@ public class NebulousAppModelPlugin implements AppModelPlugin {
                 .translationContext(translationContext)
                 .build();
         allowedTopicsProcessorPlugin.processBeforeInstallation(task, -1);
+        collectorConfigurationsProcessorPlugin.processBeforeInstallation(task, -1);
         String allowedTopics = task.getNodeRegistryEntry().getPreregistration().get(EmsConstant.COLLECTOR_ALLOWED_TOPICS_VAR);
         log.debug("NebulousAppModelPlugin: collector-allowed-topics: {}", allowedTopics);
 
