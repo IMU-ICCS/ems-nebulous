@@ -9,8 +9,8 @@
 
 package eu.nebulous.ems.k8s;
 
+import gr.iccs.imu.ems.baguette.server.ClientShellCommand;
 import gr.iccs.imu.ems.baguette.server.NodeRegistry;
-import gr.iccs.imu.ems.baguette.server.NodeRegistryEntry;
 import gr.iccs.imu.ems.common.k8s.K8sClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,11 +18,12 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Kubernetes cluster pods watcher service
@@ -40,7 +41,7 @@ public class K8sPodWatcher implements InitializingBean {
             Instant initDelay = Instant.now().plusSeconds(20);
             Duration period = Duration.ofSeconds(10);
             taskScheduler.scheduleAtFixedRate(this::doWatch, initDelay, period);
-            log.debug("K8sPodWatcher: Enabled  (running every {}sec, init-period={})", period, initDelay);
+            log.info("K8sPodWatcher: Enabled  (running every {}sec, init-period={})", period, initDelay);
         } else {
             log.info("K8sPodWatcher: Disabled  (to enable set env. var. K8S_WATCHER_ENABLED=true)");
         }
@@ -78,6 +79,17 @@ public class K8sPodWatcher implements InitializingBean {
                 log.debug("K8sPodWatcher: Address-to-Pods: {}", addressToPodMap);
 
             } // End of try-with-resources
+
+            // Group pods per node
+
+            // Update client configurations
+            ClientShellCommand.getActive().forEach(csc -> {
+                String id = csc.getId();
+                String id2 = csc.getClientId();
+                String address = csc.getClientIpAddress();
+                String address2 = csc.getClientClusterNodeAddress();
+                log.warn(">>>>>>>>>>>  id={}, id2={}, addr={}, addr2={}", id, id2, address, address2);
+            });
 
             // Update Node Registry
 //            log.warn("K8sPodWatcher: Updating Node Registry");
