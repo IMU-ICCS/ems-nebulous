@@ -15,4 +15,5 @@ public class EmsNebulousConstants {
     public final static String APPLICATION_UID_ENV_VAR = "APPLICATION_ID";
     public static final String EMS_SERVER_POD_UID_ENV_VAR = "EMS_SERVER_POD_UID";
     public static final String EMS_SERVER_POD_NAMESPACE_ENV_VAR = "EMS_SERVER_POD_NAMESPACE";
+    public static final String APP_POD_LABEL = "app";
 }

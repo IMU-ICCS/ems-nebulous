@@ -28,11 +28,14 @@ public class K8sServiceProperties implements InitializingBean {
     //private boolean enabled = true;
     private boolean deployEmsClientsOnKubernetesEnabled = true;
 
+    // Pod filters
     private List<String> ignorePodsInNamespaces = List.of(
             "kube-node-lease", "kube-public", "kube-system", "local-path-storage");
+    private List<String> ignorePodsWithAppLabel = List.of(
+            "netdata");
 
     @Override
     public void afterPropertiesSet() {
-        log.debug("ExternalBrokerServiceProperties: {}", this);
+        log.debug("K8sServiceProperties: {}", this);
     }
 }
