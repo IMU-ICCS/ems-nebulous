@@ -20,9 +20,11 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Kubernetes cluster pods watcher service
@@ -82,7 +84,7 @@ public class K8sPodWatcher implements InitializingBean {
 
             // Group running pods per host IP
             log.debug("K8sPodWatcher: Processing active pods per active EMS client: ems-clients: {}", ClientShellCommand.getActive());
-            Map<ClientShellCommand,List<String>> emsClientPodLists = new HashMap<>();
+            Map<ClientShellCommand,List<K8sClient.PodEntry>> emsClientPodLists = new HashMap<>();
             ClientShellCommand.getActive().forEach(csc -> {
                 //String id = csc.getId();
                 String emsClientPodUuid = csc.getClientId();
@@ -99,18 +101,29 @@ public class K8sPodWatcher implements InitializingBean {
                         .filter(pod -> ! pod.podUid().equalsIgnoreCase(emsClientPodUuid))
                         .toList();
                 log.trace("K8sPodWatcher: EMS client: pod-host-address={}, Filtered-pods-in-host: {}", emsClientPodHostIp, podsInHostWithoutEmsClient);
-                LinkedList<String> list = new LinkedList<>();
-                podsInHostWithoutEmsClient.forEach(pod -> {
-                    String podStr = String.format("uuid=%s, name=%s, address=%s, app=%s",
-                            pod.podUid(), pod.podName(), pod.podIP(), pod.labels().get(EmsNebulousConstants.APP_POD_LABEL));
-                    list.add(podStr);
-                    emsClientPodLists.put(csc, list);
-                    log.trace("K8sPodWatcher: EMS client: csc-id={}, host-ip={}, pod-str={}", csc.getClientId(), emsClientPodHostIp, list);
-                });
+                LinkedList<K8sClient.PodEntry> list = new LinkedList<>();
+                list.add(emsClientPod);
+                list.addAll(podsInHostWithoutEmsClient);
+                emsClientPodLists.put(csc, list);
             });
-            log.warn("K8sPodWatcher: Active Kubernetes cluster pods per EMS client: {}", emsClientPodLists);
+            log.debug("K8sPodWatcher: Active Kubernetes cluster pods per EMS client: {}", emsClientPodLists);
 
             // Update EMS client configurations
+            log.debug("K8sPodWatcher: Updating EMS client configurations with active pods: {}", emsClientPodLists);
+            emsClientPodLists.forEach((csc, podList) -> {
+                K8sClient.PodEntry emsClientPod = podList.get(0);
+                List<K8sClient.PodEntry> otherPods = podList.subList(1, podList.size());
+                String clientId = csc.getClientId();
+                String hostIp = emsClientPod.hostIP();
+
+                Set<Serializable> oldPodSet = csc.getClientConfiguration().getNodesWithoutClient();
+                Set<Serializable> newPodSet = otherPods.stream().map(K8sClient.PodEntry::podIP).collect(Collectors.toSet());
+                log.trace("K8sPodWatcher: EMS client: {} @{} -- Old pod set: {} -- New pod set: {}", clientId, hostIp, oldPodSet, newPodSet);
+                csc.getClientConfiguration().setNodesWithoutClient(newPodSet);
+                log.trace("K8sPodWatcher: EMS client: {} @{} -- Sending configuration to EMS client", clientId, hostIp);
+                csc.sendClientConfiguration();
+            });
+            log.debug("K8sPodWatcher: Updated EMS client configurations with active pods");
 
             log.debug("K8sPodWatcher: END");
 
