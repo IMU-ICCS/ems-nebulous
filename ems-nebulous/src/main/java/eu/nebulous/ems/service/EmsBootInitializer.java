@@ -99,6 +99,10 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	}
 
 	protected void sendEmsBootReadyEvent() {
+		if (publisher==null) {
+			log.warn("ExternalBrokerPublisherService: EMS Boot message not sent because External broker publisher is null");
+			return;
+		}
 		Map<String, String> message = Map.of(
 				"application", appId,
 //				"internal-address", NetUtil.getDefaultIpAddress(),
@@ -106,7 +110,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 				"address", NetUtil.getIpAddress()
 		);
 		log.debug("ExternalBrokerPublisherService: Sending message to EMS Boot: {}", message);
-		publisher.send(message, null,true);
+		publisher.send(message, null, true);
 		log.debug("ExternalBrokerPublisherService: Sent message to EMS Boot");
 	}
 
