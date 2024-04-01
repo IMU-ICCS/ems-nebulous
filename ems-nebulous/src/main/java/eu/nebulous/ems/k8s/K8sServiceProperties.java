@@ -15,6 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.List;
 
 import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
@@ -23,9 +24,11 @@ import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
 @Data
 @Validated
 @Configuration
-@ConfigurationProperties(prefix = EMS_PROPERTIES_PREFIX + "k8s")
+@ConfigurationProperties(prefix = EMS_PROPERTIES_PREFIX + "k8s-watcher")
 public class K8sServiceProperties implements InitializingBean {
-    //private boolean enabled = true;
+    private boolean enabled = true;
+    private Duration initDelay = Duration.ofSeconds(30);
+    private Duration period = Duration.ofSeconds(30);
     private boolean deployEmsClientsOnKubernetesEnabled = true;
 
     // Pod filters
