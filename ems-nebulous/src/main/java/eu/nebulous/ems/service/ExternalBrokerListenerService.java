@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.service;
 
+import eu.nebulous.ems.EmsNebulousConstants;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
@@ -33,7 +34,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
     private final MvvService mvvService;
 	private List<Consumer> consumers;
 	private Publisher commandsResponsePublisher;
-	private String applicationId = System.getenv("APPLICATION_ID");
+	private String applicationId = System.getenv(EmsNebulousConstants.APPLICATION_UID_ENV_VAR);
 
 	record Command(String key, String address, Map body, Message message, Context context) {
 	}
@@ -55,8 +56,8 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 		log.info("ExternalBrokerListenerService: Application Id (from Env.): {}", applicationId);
 		if (StringUtils.isBlank(applicationId))
-			log.warn("ExternalBrokerListenerService: APPLICATION_ID env. var. is missing");
-			//throw new IllegalArgumentException("APPLICATION_ID not provided as an env. var");
+			log.warn("ExternalBrokerListenerService: APPLICATION_UID env. var. is missing");
+			//throw new IllegalArgumentException("APPLICATION_UID not provided as an env. var");
 
 		if (checkProperties()) {
 			initializeConsumers();

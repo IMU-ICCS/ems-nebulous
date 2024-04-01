@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.service;
 
+import eu.nebulous.ems.EmsNebulousConstants;
 import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
@@ -42,7 +43,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	private final ApplicationContext applicationContext;
 	private final EmsBootInitializerProperties bootInitializerProperties;
 	private final NebulousEmsTranslatorProperties translatorProperties;
-	private final String appId = System.getenv("APPLICATION_ID");
+	private final String appId = System.getenv(EmsNebulousConstants.APPLICATION_UID_ENV_VAR);
 	private final AtomicBoolean processingResponse = new AtomicBoolean(false);
 	private ScheduledFuture<?> bootFuture;
 	private Consumer consumer;

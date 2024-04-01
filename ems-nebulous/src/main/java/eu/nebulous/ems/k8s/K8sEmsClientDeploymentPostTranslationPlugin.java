@@ -8,6 +8,7 @@
 
 package eu.nebulous.ems.k8s;
 
+import eu.nebulous.ems.EmsNebulousConstants;
 import gr.iccs.imu.ems.control.controller.NodeRegistrationCoordinator;
 import gr.iccs.imu.ems.control.plugin.PostTranslationPlugin;
 import gr.iccs.imu.ems.control.util.TopicBeacon;
@@ -28,7 +29,7 @@ public class K8sEmsClientDeploymentPostTranslationPlugin implements PostTranslat
 	private final K8sServiceProperties properties;
 	private final ApplicationContext applicationContext;
 
-	private String applicationId = System.getenv("APPLICATION_ID");
+	private String applicationId = System.getenv(EmsNebulousConstants.APPLICATION_UID_ENV_VAR);
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
