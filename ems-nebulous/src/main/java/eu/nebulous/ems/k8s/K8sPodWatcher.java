@@ -47,7 +47,7 @@ public class K8sPodWatcher implements InitializingBean {
             Instant initDelay = Instant.now().plus(properties.getInitDelay());
             Duration period = properties.getPeriod();
             taskScheduler.scheduleAtFixedRate(this::doWatch, initDelay, period);
-            log.info("K8sPodWatcher: Enabled  (running every {}sec, init-period={})", period, initDelay);
+            log.info("K8sPodWatcher: Enabled  (running every {}sec, init-delay={})", period, properties.getInitDelay());
         } else {
             log.info("K8sPodWatcher: Disabled  (to enable set 'k8s-watcher.enable' property or K8S_WATCHER_ENABLED env. var. to true)");
         }
