@@ -11,7 +11,6 @@ package eu.nebulous.ems.k8s;
 
 import eu.nebulous.ems.EmsNebulousConstants;
 import gr.iccs.imu.ems.baguette.server.ClientShellCommand;
-import gr.iccs.imu.ems.baguette.server.NodeRegistry;
 import gr.iccs.imu.ems.common.k8s.K8sClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 public class K8sPodWatcher implements InitializingBean {
     private final K8sServiceProperties properties;
     private final TaskScheduler taskScheduler;
-    private final NodeRegistry nodeRegistry;
 
     private final String EMS_SERVER_POD_UID = StringUtils.defaultIfBlank(
             System.getenv(EmsNebulousConstants.EMS_SERVER_POD_UID_ENV_VAR), "");
