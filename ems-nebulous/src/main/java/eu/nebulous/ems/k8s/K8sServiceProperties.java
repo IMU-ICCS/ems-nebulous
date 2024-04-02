@@ -28,7 +28,7 @@ import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
 public class K8sServiceProperties implements InitializingBean {
     private boolean enabled = true;
     private Duration initDelay = Duration.ofSeconds(30);
-    private Duration period = Duration.ofSeconds(30);
+    private Duration period = Duration.ofSeconds(60);
     private boolean deployEmsClientsOnKubernetesEnabled = true;
 
     // Pod filters
