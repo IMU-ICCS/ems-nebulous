@@ -40,7 +40,7 @@ public class K8sPodWatcher implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        boolean envVarEnable = Boolean.parseBoolean(K8sClient.getConfig("K8S_WATCHER_ENABLED", "true"));
+        boolean envVarEnable = Boolean.parseBoolean(K8sClient.getConfig("K8S_WATCHER_ENABLED", "false"));
         if (properties.isEnabled() || envVarEnable) {
             Instant initDelay = Instant.now().plus(properties.getInitDelay());
             Duration period = properties.getPeriod();
