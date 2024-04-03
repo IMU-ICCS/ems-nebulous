@@ -487,7 +487,8 @@
                                 <runCmds>
                                     <run>
                                         cat /tmp/banner.txt >> /opt/ems-server/BOOT-INF/classes/banner.txt \
-                                        &amp;&amp; rm /tmp/banner.txt
+                                        &amp;&amp; rm /tmp/banner.txt \
+                                        &amp;&amp; date -Iseconds > /tmp/build.timestamp
                                     </run>
                                 </runCmds>
                             </build>
