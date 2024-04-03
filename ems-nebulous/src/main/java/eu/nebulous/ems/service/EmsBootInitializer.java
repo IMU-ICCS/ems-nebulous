@@ -8,7 +8,7 @@
 
 package eu.nebulous.ems.service;
 
-import eu.nebulous.ems.EmsNebulousConstants;
+import eu.nebulous.ems.EmsNebulousProperties;
 import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -43,13 +42,14 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	private final ApplicationContext applicationContext;
 	private final EmsBootInitializerProperties bootInitializerProperties;
 	private final NebulousEmsTranslatorProperties translatorProperties;
-	private final String appId = System.getenv(EmsNebulousConstants.APPLICATION_UID_ENV_VAR);
+	private final String applicationId;
 	private final AtomicBoolean processingResponse = new AtomicBoolean(false);
 	private ScheduledFuture<?> bootFuture;
 	private Consumer consumer;
 	private Publisher publisher;
 
 	public EmsBootInitializer(ApplicationContext applicationContext,
+							  EmsNebulousProperties emsNebulousProperties,
 							  EmsBootInitializerProperties bootInitializerProperties,
 							  NebulousEmsTranslatorProperties translatorProperties,
 							  ExternalBrokerServiceProperties properties,
@@ -59,11 +59,12 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		this.applicationContext = applicationContext;
 		this.bootInitializerProperties = bootInitializerProperties;
 		this.translatorProperties = translatorProperties;
+		this.applicationId = emsNebulousProperties.getApplicationId();
 	}
 
 	@Override
 	public void onApplicationEvent(ApplicationReadyEvent event) {
-		if (StringUtils.isBlank(appId)) {
+		if (StringUtils.isBlank(applicationId)) {
 			log.warn("===================> EMS is ready -- Application Id is blank. EMS Boot disabled");
 			return;
 		}
@@ -75,7 +76,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			log.warn("===================> EMS is ready -- EMS Boot disabled because External broker service is disabled");
 			return;
 		}
-		log.info("===================> EMS is ready -- Scheduling EMS Boot message -- App Id: {}", appId);
+		log.info("===================> EMS is ready -- Scheduling EMS Boot message -- App Id: {}", applicationId);
 
 		// Start connector used for EMS Booting
 		startConnector();
@@ -105,7 +106,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			return;
 		}
 		Map<String, String> message = Map.of(
-				"application", appId,
+				"application", applicationId,
 //				"internal-address", NetUtil.getDefaultIpAddress(),
 //				"public-address", NetUtil.getPublicIpAddress(),
 				"address", NetUtil.getIpAddress()

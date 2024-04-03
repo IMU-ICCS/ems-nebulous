@@ -8,7 +8,7 @@
 
 package eu.nebulous.ems.service;
 
-import eu.nebulous.ems.EmsNebulousConstants;
+import eu.nebulous.ems.EmsNebulousProperties;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
@@ -21,7 +21,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -31,19 +30,22 @@ import java.util.concurrent.ArrayBlockingQueue;
 @Service
 public class ExternalBrokerListenerService extends AbstractExternalBrokerService implements InitializingBean {
 	private final ArrayBlockingQueue<Command> commandQueue = new ArrayBlockingQueue<>(100);
+    private final EmsNebulousProperties emsNebulousProperties;
     private final MvvService mvvService;
 	private List<Consumer> consumers;
 	private Publisher commandsResponsePublisher;
-	private String applicationId = System.getenv(EmsNebulousConstants.APPLICATION_UID_ENV_VAR);
+	private String applicationId;
 
 	record Command(String key, String address, Map body, Message message, Context context) {
 	}
 
 	public ExternalBrokerListenerService(ExternalBrokerServiceProperties properties,
+										 EmsNebulousProperties emsNebulousProperties,
                                          TaskScheduler taskScheduler,
 										 MvvService mvvService)
 	{
 		super(properties, taskScheduler);
+		this.emsNebulousProperties = emsNebulousProperties;
         this.mvvService = mvvService;
     }
 
@@ -54,9 +56,10 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 			return;
 		}
 
-		log.info("ExternalBrokerListenerService: Application Id (from Env.): {}", applicationId);
+		applicationId = emsNebulousProperties.getApplicationId();
+		log.info("ExternalBrokerListenerService: Application Id: {}", applicationId);
 		if (StringUtils.isBlank(applicationId))
-			log.warn("ExternalBrokerListenerService: APPLICATION_UID env. var. is missing");
+			log.warn("ExternalBrokerListenerService: APPLICATION_ID env. var. is missing");
 			//throw new IllegalArgumentException("APPLICATION_UID not provided as an env. var");
 
 		if (checkProperties()) {
@@ -117,7 +120,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		}, Instant.now());
 	}
 
-	private void processMessage(Command command) throws ClientException, IOException {
+	private void processMessage(Command command) throws ClientException {
 		log.debug("ExternalBrokerListenerService: Command: {}", command);
 		log.debug("ExternalBrokerListenerService: Command: message: {}", command.message);
 		log.debug("ExternalBrokerListenerService: Command: body: {}", command.message.body());

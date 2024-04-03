@@ -9,7 +9,7 @@
 
 package eu.nebulous.ems.k8s;
 
-import eu.nebulous.ems.EmsNebulousConstants;
+import eu.nebulous.ems.EmsNebulousProperties;
 import gr.iccs.imu.ems.baguette.server.ClientShellCommand;
 import gr.iccs.imu.ems.common.k8s.K8sClient;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +34,10 @@ import java.util.stream.Collectors;
 public class K8sPodWatcher implements InitializingBean {
     private final K8sServiceProperties properties;
     private final TaskScheduler taskScheduler;
+    private final EmsNebulousProperties emsNebulousProperties;
 
-    private final String EMS_SERVER_POD_UID = StringUtils.defaultIfBlank(
-            System.getenv(EmsNebulousConstants.EMS_SERVER_POD_UID_ENV_VAR), "");
+    private String EMS_SERVER_POD_UID;
+    private String APP_POD_LABEL;
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -49,6 +50,9 @@ public class K8sPodWatcher implements InitializingBean {
         } else {
             log.info("K8sPodWatcher: Disabled  (to enable set 'k8s-watcher.enable' property or K8S_WATCHER_ENABLED env. var. to true)");
         }
+        EMS_SERVER_POD_UID = StringUtils.defaultIfBlank(
+                emsNebulousProperties.getEmsServerPodUid(), "");
+        APP_POD_LABEL = emsNebulousProperties.getAppPodLabel();
     }
 
     private void doWatch() {
@@ -61,7 +65,7 @@ public class K8sPodWatcher implements InitializingBean {
             try (K8sClient client = K8sClient.create()) {
                 client.getRunningPodsInfo().forEach(pod -> {
                     String ns = pod.getMetadata().getNamespace();
-                    String appLabelValue = pod.getMetadata().getLabels().get(EmsNebulousConstants.APP_POD_LABEL);
+                    String appLabelValue = pod.getMetadata().getLabels().get(APP_POD_LABEL);
                     log.trace("K8sPodWatcher: Got pod: uid={}, name={}, address={}, namespace={}, app-label={}",
                             pod.getMetadata().getUid(), pod.getMetadata().getName(), pod.getStatus().getPodIP(),
                             ns, appLabelValue);
