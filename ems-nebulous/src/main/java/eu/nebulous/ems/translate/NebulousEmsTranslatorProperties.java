@@ -38,10 +38,10 @@ public class NebulousEmsTranslatorProperties implements InitializingBean {
     private String modelsDir = "models";
 
     // Name processing parameters
-    private boolean useCompositeNames = true;
+    private boolean useCompositeNames = false;
     private Map<Pattern, String> nameNormalizationPatterns = Map.of(
-            Pattern.compile("_"), "__",
-            Pattern.compile("[^A-Za-z0-9_]"), "_"
+            //Pattern.compile("_"), "__",
+            //Pattern.compile("[^A-Za-z0-9_]"), "_"
     );
 
     // Sensor processing parameters
