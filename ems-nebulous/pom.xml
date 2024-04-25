@@ -339,14 +339,14 @@
                 </executions>
             </plugin>
 
-            <plugin>
+            <!--<plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
                 <executions>
-                    <!-- Copy empty.yml model -->
+                    &lt;!&ndash; Copy empty.yml model &ndash;&gt;
                     <execution>
                         <id>copy-empty-model</id>
-                        <!-- here the phase you need -->
+                        &lt;!&ndash; here the phase you need &ndash;&gt;
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -365,7 +365,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
 
         </plugins>
     </build>

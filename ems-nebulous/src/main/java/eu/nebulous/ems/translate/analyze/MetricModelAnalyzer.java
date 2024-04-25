@@ -222,7 +222,7 @@ public class MetricModelAnalyzer {
         });
 
         // Add function names
-        filterSpecsList(asList(ctx.read("$.functions.*.*"))).forEach(spec -> {
+        filterSpecsList(asList(ctx.read("$[?(@.functions!=null)].functions.*.*"))).forEach(spec -> {
             log.trace("check-name-uniqueness: {}", spec);
             String name = getSpecName(spec);
             if (StringUtils.isNotBlank(name))
