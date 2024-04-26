@@ -83,9 +83,22 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 	}
 
 	@Override
+	public String getModel(String metricModelPath) {
+		log.info("NebulousEmsTranslator: Getting metric model from file: {}", metricModelPath);
+		try {
+			// -- Load model ------------------------------------------------------
+			Path inputFile = Paths.get(properties.getModelsDir(), metricModelPath);
+			return Files.readString(inputFile);
+		} catch (Exception e) {
+			log.error("NebulousEmsTranslator: EXCEPTION while getting metric model from file: {}\nException: ", metricModelPath, e);
+			throw new NebulousEmsTranslationException("Error while getting metric model from file: "+metricModelPath, e);
+		}
+	}
+
+	@Override
 	public String addModel(String metricModelPath, String metricModelStr) {
 		log.info("NebulousEmsTranslator: Adding metric model to file: {}", metricModelPath);
-		log.info("NebulousEmsTranslator: New metric model: {}", metricModelStr);
+		log.debug("NebulousEmsTranslator: New metric model: {}", metricModelStr);
 		try {
 			// -- Load old model --------------------------------------------------
 			Path inputFile = Paths.get(properties.getModelsDir(), metricModelPath);
@@ -97,10 +110,24 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 			// -- Store new model -------------------------------------------------
 			Files.writeString(inputFile, metricModelStr);
 
+			// Return model old contents (if any)
 			return oldModelStr;
 		} catch (Exception e) {
 			log.error("NebulousEmsTranslator: EXCEPTION while adding metric model to file: {}\nException: ", metricModelPath, e);
 			throw new NebulousEmsTranslationException("Error while adding metric model to file: "+metricModelPath, e);
+		}
+	}
+
+	@Override
+	public boolean removeModel(String metricModelPath) {
+		log.info("NebulousEmsTranslator: Removing metric model file: {}", metricModelPath);
+		try {
+			// -- Delete model ----------------------------------------------------
+			Path inputFile = Paths.get(properties.getModelsDir(), metricModelPath);
+			return inputFile.toFile().delete();
+		} catch (Exception e) {
+			log.error("NebulousEmsTranslator: EXCEPTION while removing metric model file: {}\nException: ", metricModelPath, e);
+			throw new NebulousEmsTranslationException("Error while removing metric model file: "+metricModelPath, e);
 		}
 	}
 
