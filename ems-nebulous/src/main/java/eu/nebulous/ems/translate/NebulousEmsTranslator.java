@@ -82,6 +82,28 @@ public class NebulousEmsTranslator implements Translator, InitializingBean {
 		}
 	}
 
+	@Override
+	public String addModel(String metricModelPath, String metricModelStr) {
+		log.info("NebulousEmsTranslator: Adding metric model to file: {}", metricModelPath);
+		log.info("NebulousEmsTranslator: New metric model: {}", metricModelStr);
+		try {
+			// -- Load old model --------------------------------------------------
+			Path inputFile = Paths.get(properties.getModelsDir(), metricModelPath);
+			String oldModelStr = null;
+			if (inputFile.toFile().exists()) {
+				oldModelStr = Files.readString(inputFile);
+			}
+
+			// -- Store new model -------------------------------------------------
+			Files.writeString(inputFile, metricModelStr);
+
+			return oldModelStr;
+		} catch (Exception e) {
+			log.error("NebulousEmsTranslator: EXCEPTION while adding metric model to file: {}\nException: ", metricModelPath, e);
+			throw new NebulousEmsTranslationException("Error while adding metric model to file: "+metricModelPath, e);
+		}
+	}
+
 	// ================================================================================================================
 	// Private methods
 

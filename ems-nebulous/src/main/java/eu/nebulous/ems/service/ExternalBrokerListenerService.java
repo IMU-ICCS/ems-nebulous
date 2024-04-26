@@ -13,6 +13,10 @@ import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
 import eu.nebulouscloud.exn.core.Publisher;
+import gr.iccs.imu.ems.control.controller.ControlServiceCoordinator;
+import gr.iccs.imu.ems.control.controller.ControlServiceRequestInfo;
+import gr.iccs.imu.ems.translate.TranslationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.qpid.protonj2.client.Message;
@@ -21,7 +25,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -31,6 +37,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 public class ExternalBrokerListenerService extends AbstractExternalBrokerService implements InitializingBean {
 	private final ArrayBlockingQueue<Command> commandQueue = new ArrayBlockingQueue<>(100);
     private final EmsNebulousProperties emsNebulousProperties;
+    private final ControlServiceCoordinator controlServiceCoordinator;
     private final MvvService mvvService;
 	private List<Consumer> consumers;
 	private Publisher commandsResponsePublisher;
@@ -41,11 +48,13 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 
 	public ExternalBrokerListenerService(ExternalBrokerServiceProperties properties,
 										 EmsNebulousProperties emsNebulousProperties,
+										 ControlServiceCoordinator controlServiceCoordinator,
                                          TaskScheduler taskScheduler,
 										 MvvService mvvService)
 	{
 		super(properties, taskScheduler);
 		this.emsNebulousProperties = emsNebulousProperties;
+		this.controlServiceCoordinator = controlServiceCoordinator;
         this.mvvService = mvvService;
     }
 
@@ -126,11 +135,11 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		log.debug("ExternalBrokerListenerService: Command: body: {}", command.message.body());
 		command.message.forEachProperty((s, o) ->
 				log.debug("ExternalBrokerListenerService: Command: --- property: {} = {}", s, o));
-		/*if (properties.getCommandsTopic().equals(command.address)) {
+		if (properties.getCommandsTopic().equals(command.address)) {
 			// Process command
 			log.info("ExternalBrokerListenerService: Received a command from external broker: {}", command.body);
 			processCommandMessage(command);
-		} else*/
+		} else
 		if (properties.getSolutionsTopic().equals(command.address)) {
 			// Process new solution message
 			log.info("ExternalBrokerListenerService: Received a new Solution message from external broker: {}", command.body);
@@ -145,7 +154,7 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		}
 	}
 
-	/*private void processCommandMessage(Command command) throws ClientException {
+	private void processCommandMessage(Command command) throws ClientException {
 		// Get application id
 		String appId = getAppId(command, commandsResponsePublisher);
 		if (appId == null) return;
@@ -154,7 +163,41 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		String commandStr = command.body.getOrDefault("command", "").toString();
 		log.debug("ExternalBrokerListenerService: Command: {}", commandStr);
 
-		sendResponse(commandsResponsePublisher, appId, "ERROR: ---NOT YET IMPLEMENTED---: "+ command.body);
+		String[] cmd = commandStr.split(" ", 2);
+		if ("TRANSLATE".equalsIgnoreCase(cmd[0])) {
+			if (cmd.length>1 && StringUtils.isNotBlank(cmd[1])) {
+				Map<String, Serializable> result = translateModel(appId, cmd);
+				sendResponse(commandsResponsePublisher, appId, result);
+				return;
+			}
+		}
+
+		sendResponse(commandsResponsePublisher, appId, Map.of("error", "Unknown command or wrong parameters: "+command.body));
+	}
+
+	@NonNull
+	private Map<String, Serializable> translateModel(String appId, String[] cmd) {
+		long startTm = System.currentTimeMillis();
+		Map<String, Serializable> result;
+		try {
+			TranslationContext _TC = controlServiceCoordinator
+					.translateAppModel(appId, cmd[1].trim(), ControlServiceRequestInfo.EMPTY);
+			boolean success = _TC!=null;
+			log.info("ExternalBrokerListenerService: Command: Model translation successful: {}", success);
+			long endTm = System.currentTimeMillis();
+			result = Map.of("command", "TRANSLATE", "appId", appId, "result", success, "duration", endTm-startTm);
+		} catch (Throwable t) {
+			log.warn("ExternalBrokerListenerService: Command: Model translation failed:\n", t);
+			ArrayList<String> errors = new ArrayList<>();
+			Throwable tmp = t;
+			while (tmp !=null) {
+				errors.add(tmp.getMessage());
+				tmp = tmp.getCause();
+			}
+			long endTm = System.currentTimeMillis();
+			result = Map.of("command", "TRANSLATE", "appId", appId, "result", false, "errors", errors, "duration", endTm-startTm);
+		}
+		return result;
 	}
 
 	private String getAppId(Command command, Publisher publisher) throws ClientException {
@@ -186,5 +229,5 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		publisher.send(Map.of(
 				"response", response
 		), appId);
-	}*/
+	}
 }
