@@ -97,6 +97,17 @@ class SensorsHelper extends AbstractHelper implements InitializingBean {
         // overrides 'type' in 'config' (if any)
         configuration.put("type", sensorType);
 
+        // Get containing component or scope name
+        String parentName = getContainerName(sensorSpec);
+        if (StringUtils.isNotBlank(parentName)) {
+            // Add component names where this sensor applies to (i.e. containing component, or containing scope's components)
+            Set<String> components = ($$(_TC).scopesComponents.containsKey(parentName))
+                    ? $$(_TC).scopesComponents.get(parentName)
+                    : Set.of(parentName);
+            configuration.put("components", components);
+        } else
+            throw createException("Could not get Sensor's containing component/scope name: sensor '" + sensorName + "' in metric '" + parentNamesKey + "': " + sensorSpec);
+
         // Create pull or push sensor
         Sensor sensor;
         if (isPull) {
