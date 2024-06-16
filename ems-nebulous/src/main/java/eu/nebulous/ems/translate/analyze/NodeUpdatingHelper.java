@@ -46,14 +46,16 @@ class NodeUpdatingHelper extends AbstractHelper {
                 .collect(Collectors.groupingByConcurrent(
                         entry -> getContainerName(entry.getValue()),
                         Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentOrScopesToSLOsMapping: {}", componentOrScopesToSLOsMapping);
+        log.trace("NodeUpdatingHelper: componentOrScopesToSLOsMapping: {}", componentOrScopesToSLOsMapping);
 
         // Build component-to-scope mapping
         Map<String, Set<String>> componentsToScopesMap = createComponentsToScopesMap(ctx, componentNames);
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToScopesMap: {}", componentsToScopesMap);
+        log.trace("NodeUpdatingHelper: componentsToScopesMap: {}", componentsToScopesMap);
 
         // Build integrated components SLO sets
+        log.trace("NodeUpdatingHelper: componentNames: {}", componentNames);
         Map<String, Set<NamesKey>> componentsToSLOsMap = componentNames.stream()
+                .filter(componentsToScopesMap::containsKey)
                 .collect(Collectors.toMap(
                         Function.identity(),
                         componentName -> {
@@ -66,7 +68,7 @@ class NodeUpdatingHelper extends AbstractHelper {
                                     .collect(Collectors.toSet());
                         }
                 ));
-        log.trace("MetricModelAnalyzer.analyzeModel(): componentsToSLOsMap: {}", componentsToSLOsMap);
+        log.trace("NodeUpdatingHelper: componentsToSLOsMap: {}", componentsToSLOsMap);
 
         $$(_TC).componentsToSLOsMap = componentsToSLOsMap;
     }
@@ -145,7 +147,7 @@ class NodeUpdatingHelper extends AbstractHelper {
                         AbstractMap.SimpleEntry::getValue,
                         Collectors.mapping(AbstractMap.SimpleEntry::getKey, Collectors.toSet())
                 ));
-        log.trace("MetricModelAnalyzer.analyzeModel(): slosToComponentsMap: {}", slosToComponentsMap);
+        log.trace("NodeUpdatingHelper: slosToComponentsMap: {}", slosToComponentsMap);
 
         $$(_TC).slosToComponentsMap = slosToComponentsMap;
     }
@@ -215,12 +217,12 @@ class NodeUpdatingHelper extends AbstractHelper {
                 .filter(tlNode -> tlNode.getElement() instanceof MetricVariable
                         && StringUtils.equalsIgnoreCase(tlNode.getName(), properties.getOrphanMetricsParentName()))
                 .findAny().orElse(null);
-        log.trace("MetricModelAnalyzer.analyzeModel(): orphanMetricsNode: {}", orphanMetricsNode);
+        log.trace("NodeUpdatingHelper: orphanMetricsNode: {}", orphanMetricsNode);
 
         if (orphanMetricsNode != null) {
             DAGNode root = _TC.getDAG().getRootNode();
             _TC.getDAG().getNodeChildren(orphanMetricsNode).forEach(node -> {
-                log.trace("MetricModelAnalyzer.analyzeModel(): Making orphan metric top-level: {}", node);
+                log.trace("NodeUpdatingHelper: Making orphan metric top-level: {}", node);
                 _TC.getDAG().addDAGEdge(root, node);
                 _TC.getDAG().removeEdge(orphanMetricsNode, node);
             });
