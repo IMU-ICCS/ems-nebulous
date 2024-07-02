@@ -15,7 +15,7 @@ import com.jayway.jsonpath.ParseContext;
 import eu.nebulous.ems.translate.analyze.antlr4.ConstraintsBaseVisitor;
 import eu.nebulous.ems.translate.analyze.antlr4.ConstraintsLexer;
 import eu.nebulous.ems.translate.analyze.antlr4.ConstraintsParser;
-import gr.iccs.imu.ems.control.collector.ServerCollector;
+import gr.iccs.imu.ems.control.collector.IServerCollector;
 import gr.iccs.imu.ems.control.collector.ServerCollectorContext;
 import gr.iccs.imu.ems.translate.model.MetricTemplate;
 import gr.iccs.imu.ems.translate.model.ValueType;
@@ -312,7 +312,7 @@ public class ShorthandsExpansionHelper implements InitializingBean {
     private void updateSensorConfigMap(Map<String, Object> sensorConfigMap, String sensorType, String stringConfigExpression) {
         log.debug("ShorthandsExpansionHelper.updateSensorConfigMap: BEGIN: sensorType={}, expression={}, sensorConfigMap={}", sensorType, stringConfigExpression, sensorConfigMap);
         if (serverCollectorContext!=null) {
-            ServerCollector collector = serverCollectorContext.getCollectorByName(sensorType);
+            IServerCollector collector = serverCollectorContext.getCollectorByName(sensorType);
             log.debug("ShorthandsExpansionHelper.updateSensorConfigMap: sensorType={}, collector={}", sensorType, collector);
             if (collector != null) {
                 Map<String, Object> result = collector.stringToConfigMap(stringConfigExpression);
