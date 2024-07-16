@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static eu.nebulous.ems.translate.analyze.AnalysisUtils.*;
 
@@ -29,10 +30,19 @@ import static eu.nebulous.ems.translate.analyze.AnalysisUtils.*;
 @Service
 @RequiredArgsConstructor
 class ConstraintsHelper extends AbstractHelper {
+    private final static String NESTED_CONSTRAINT_NAME_PREFIX = "_CON_";
+    private final static String NESTED_CONSTRAINT_NAME_SUFFIX = "_NESTED";
     private final static String DEFAULT_CONSTRAINT_NAME_SUFFIX = "_CONSTRAINT";
+
+    private final static AtomicLong constraintCounter = new AtomicLong(1);
 
     private final NebulousEmsTranslatorProperties properties;
     private final MetricsHelper metricsHelper;
+
+    @Override
+    void reset() {
+        constraintCounter.set(1);
+    }
 
     void decomposeConstraints(TranslationContext _TC, Map<NamesKey, Object> sloList) {
         sloList.forEach((sloNamesKey, sloSpec) -> {
@@ -230,7 +240,7 @@ class ConstraintsHelper extends AbstractHelper {
 
     private Constraint decomposeComposingConstraintSpec(TranslationContext _TC, Map spec, NamesKey parentNamesKey, Constraint parentConstraint) {
         // Construct SLO namesKey
-        String name = "random_"+System.currentTimeMillis();
+        String name = NESTED_CONSTRAINT_NAME_PREFIX + constraintCounter.getAndIncrement() + NESTED_CONSTRAINT_NAME_SUFFIX;
         NamesKey namesKey = createNamesKey2(getContainerName(spec), name);
 
         // Decompose composing constraint
