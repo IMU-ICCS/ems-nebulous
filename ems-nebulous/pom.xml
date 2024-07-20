@@ -504,6 +504,10 @@
                                                         <source>${project.build.directory}/classes/empty.yml</source>
                                                         <outputDirectory>${docker.user.home}/models</outputDirectory>
                                                     </file>
+                                                    <file>
+                                                        <source>${project.build.directory}/classes/extension.yml</source>
+                                                        <outputDirectory>${docker.user.home}/models</outputDirectory>
+                                                    </file>
 
                                                     <file>
                                                         <source>${project.basedir}/src/main/resources/helm/app-detection.yml</source>
