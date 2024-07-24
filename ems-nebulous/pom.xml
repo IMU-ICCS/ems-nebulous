@@ -28,19 +28,25 @@
         <ems.version>7.0.0-SNAPSHOT</ems.version>
 
         <!-- Spring Boot versions -->
-        <spring.version>6.1.6</spring.version>
-        <spring-boot.version>3.2.5</spring-boot.version>
+        <spring.version>6.1.11</spring.version>
+        <spring-boot.version>3.2.8</spring-boot.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.34</lombok.version>
 
         <!-- Nebulous-EMS extension dependency versions -->
-        <jackson.version>2.16.2</jackson.version>
+        <jackson.version>2.17.2</jackson.version>
         <json-path.version>2.9.0</json-path.version>
         <thymeleaf.version>3.1.2.RELEASE</thymeleaf.version>
-        <schematron.version>8.0.0</schematron.version>
+        <schematron.version>8.0.1</schematron.version>
+
+        <exn-connector.version>1.0-SNAPSHOT</exn-connector.version>
 
         <!-- io.fabricat8 docker-maven-plugin properties -->
-        <docker-maven-plugin.version>0.43.2</docker-maven-plugin.version>
+        <docker-maven-plugin.version>0.44.0</docker-maven-plugin.version>
+        <buildnumber-maven-plugin.version>3.2.0</buildnumber-maven-plugin.version>
+        <git-commit-id-maven-plugin.version>7.0.0</git-commit-id-maven-plugin.version>
+        <properties-maven-plugin.version>1.2.1</properties-maven-plugin.version>
+        <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
 
         <!-- EMS Nebulous Docker image properties -->
         <docker-image-properties-file>docker-image.properties</docker-image-properties-file>
@@ -124,7 +130,7 @@
         <dependency>
             <groupId>eu.nebulouscloud</groupId>
             <artifactId>exn-connector-java</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${exn-connector.version}</version>
         </dependency>
 
         <!-- ===================================================================== -->
@@ -221,7 +227,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>${buildnumber-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>buildnumber-create</id>
@@ -254,7 +260,7 @@
             <plugin>
                 <groupId>io.github.git-commit-id</groupId>
                 <artifactId>git-commit-id-maven-plugin</artifactId>
-                <version>7.0.0</version>
+                <version>${git-commit-id-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>get-git-info</id>
@@ -311,7 +317,7 @@
 
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>${maven-antrun-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>remove-slf4j-files-from-jar-with-dependencies</id>
@@ -409,7 +415,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>properties-maven-plugin</artifactId>
-                        <version>1.2.0</version>
+                        <version>${properties-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>read-docker-image-properties</id>
