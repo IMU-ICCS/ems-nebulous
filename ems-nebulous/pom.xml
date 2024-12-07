@@ -345,9 +345,11 @@
                                     <zipfileset src="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
                                                 excludes="org/slf4j/**" />
                                 </jar>
+                                <sleep seconds="2" />
                                 <move file="${project.build.directory}/temp.jar"
                                       tofile="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
                                       force="true"/>
+                                <sleep seconds="2" />
                                 <delete file="${project.build.directory}/temp-jar-with-dependencies.jar" />
                                 <!--XXX:TODO: Used during development -->
                                 <!--<copy file="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
