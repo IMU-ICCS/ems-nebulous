@@ -178,25 +178,80 @@ class MetricsHelper extends AbstractHelper {
 
         NamesKey metricNamesKey = getNamesKey(metricSpec, metricName);
 
-        // Check formula and extract metrics
-        if (StringUtils.isBlank(formula))
-            throw createException("Composite metric 'formula' cannot be blank: at '"+metricNamesKey.name()+"': " + metricSpec);
-        @NonNull Set<String> formulaArgs = MathUtil.getFormulaArguments(formula);
-        log.trace("decomposeCompositeMetric: {}: formula={}, args={}", metricNamesKey.name(), formula, formulaArgs);
+        // Check if formula uses direct EPL
+        /*//XXX:TODO: INCOMPLETE
+        if (formula.startsWith(RuleGenerator.EPL_VALUE)) {
+            String eplStr = formula.substring(RuleGenerator.EPL_VALUE.length());
 
-        // Remove constants and custom function names from 'formulaArgs'
-        String containerName = getContainerName(metricSpec);
-        log.trace("decomposeCompositeMetric: {}: container-name={}", metricNamesKey.name(), containerName);
-        log.trace("decomposeCompositeMetric: {}: constants={}", metricNamesKey.name(), $$(_TC).constants);
-        log.trace("decomposeCompositeMetric: {}: constants-keys={}", metricNamesKey.name(), $$(_TC).constants.keySet());
-        formulaArgs.removeAll( $$(_TC).constants.keySet().stream()
-                //.peek(nk -> log.trace("decomposeCompositeMetric: {}:       NK: {}, parent: {}", metricNamesKey.name(), nk, nk != null ? nk.parent : null))
-                .filter(Objects::nonNull)
-                .filter(nk ->  properties.isUseCompositeNames() ? nk.parent.equals(containerName) : true)           // Check that all formula args are metrics under the same parent
-                .map(nk->nk.child)
-                .collect(Collectors.toSet()));
-        formulaArgs.removeAll( $$(_TC).functionNames );
-        log.trace("decomposeCompositeMetric: {}: After removing constants: formula={}, args={}", metricNamesKey.name(), formula, formulaArgs);
+            // Update TC
+            CompositeMetricContext compositeMetric = CompositeMetricContext.builder()
+                    .name(metricNamesKey.name())
+                    .object(metricSpec)
+                    .metric(CompositeMetric.builder()
+                            .name(metricName + DEFAULT_METRIC_NAME_SUFFIX)
+                            .formula("")
+                            .componentMetrics(List.of())
+                            .build())
+                    .subFeatures(List.of(Feature.builder()
+                            .name(RuleGenerator.TRANSLATION_CONFIG)
+                            .attributes(List.of(Attribute.builder()
+                                            .name(RuleGenerator.EPL_VALUE)
+                                            .value(eplStr)
+                                            .valueType(ValueType.STRING_TYPE)
+                                            .build() ))
+                            .build() ))
+                    .build();
+            _TC.getDAG().addNode(parent, compositeMetric);
+
+            return compositeMetric;
+        }*/
+
+        // Check if formula provides EPL SELECT and FROM components
+        Set<String> childMetricsSet;
+        if (formula.startsWith(RuleGenerator.EPL_FORMULA_TAG)) {
+
+            // When formula provides EPL parts...
+            String fm1 = formula.substring(RuleGenerator.EPL_FORMULA_TAG.length());
+            int i = fm1.indexOf("|");
+            if (i<=0)
+                throw createException("Invalid EPL TAG formula: No select/from part separator: '"+metricName+"': " + metricSpec);
+            String fromStr = fm1.substring(0, i).trim();
+            String selectStr = fm1.substring(i+1).trim();
+            if (StringUtils.isAnyBlank(fromStr, selectStr))
+                throw createException("Invalid EPL TAG formula: Either select or from part is blank: '"+metricName+"': " + metricSpec);
+            formula = RuleGenerator.EPL_FORMULA_TAG +" " + selectStr;
+            childMetricsSet = Arrays.stream(fromStr.split("[ \t,;]+"))
+                    .filter(StringUtils::isNotBlank)
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+
+        } else {
+
+            // When formula DOES NOT provide EPL parts...
+
+            // Check formula and extract metrics
+            if (StringUtils.isBlank(formula))
+                throw createException("Composite metric 'formula' cannot be blank: at '" + metricNamesKey.name() + "': " + metricSpec);
+            @NonNull Set<String> formulaArgs = MathUtil.getFormulaArguments(formula);
+            log.trace("decomposeCompositeMetric: {}: formula={}, args={}", metricNamesKey.name(), formula, formulaArgs);
+
+            // Remove constants and custom function names from 'formulaArgs'
+            String containerName = getContainerName(metricSpec);
+            log.trace("decomposeCompositeMetric: {}: container-name={}", metricNamesKey.name(), containerName);
+            log.trace("decomposeCompositeMetric: {}: constants={}", metricNamesKey.name(), $$(_TC).constants);
+            log.trace("decomposeCompositeMetric: {}: constants-keys={}", metricNamesKey.name(), $$(_TC).constants.keySet());
+            formulaArgs.removeAll($$(_TC).constants.keySet().stream()
+                    //.peek(nk -> log.trace("decomposeCompositeMetric: {}:       NK: {}, parent: {}", metricNamesKey.name(), nk, nk != null ? nk.parent : null))
+                    .filter(Objects::nonNull)
+                    .filter(nk -> properties.isUseCompositeNames() ? nk.parent.equals(containerName) : true)           // Check that all formula args are metrics under the same parent
+                    .map(nk -> nk.child)
+                    .collect(Collectors.toSet()));
+            formulaArgs.removeAll($$(_TC).functionNames);
+            log.trace("decomposeCompositeMetric: {}: After removing constants: formula={}, args={}", metricNamesKey.name(), formula, formulaArgs);
+
+            childMetricsSet = formulaArgs;
+
+        }
 
         // Update TC
         CompositeMetricContext compositeMetric = CompositeMetricContext.builder()
@@ -209,7 +264,7 @@ class MetricsHelper extends AbstractHelper {
         // NOTE: child metric decomposition MUST be done before this metric has been altered in any way (or else
         //       hashCode() will return new value, different from that cached in the DAG)
         List<MetricContext> childMetricsList = new ArrayList<>();
-        for (String childMetricName : formulaArgs) {
+        for (String childMetricName : childMetricsSet) {
             NamesKey childMetricNamesKey = getNamesKey(metricSpec, childMetricName);
             Map<String, Object> childMetricSpec = asMap($$(_TC).allMetrics.get(childMetricNamesKey));
             log.trace("decomposeCompositeMetric: {}: Checking formula arg={} -- key: {}, spec: {}", metricNamesKey.name(), childMetricName, childMetricNamesKey, childMetricSpec);
