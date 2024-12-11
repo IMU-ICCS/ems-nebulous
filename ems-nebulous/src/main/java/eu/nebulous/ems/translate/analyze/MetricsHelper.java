@@ -79,6 +79,8 @@ class MetricsHelper extends AbstractHelper {
                     decomposeRawMetric(_TC, metricSpec, parent);
             case "composite" ->
                     decomposeCompositeMetric(_TC, metricSpec, parent);
+            case "asis", "as-is" ->
+                    decomposeAsIsMetric(_TC, metricSpec, parent);
             case "ref" ->
                     processRef(_TC, metricSpec, parentNamesKey, parent);
             default ->
@@ -294,6 +296,58 @@ class MetricsHelper extends AbstractHelper {
                 .build());
 
         return compositeMetric;
+    }
+
+    private AsIsMetricContext decomposeAsIsMetric(TranslationContext _TC, Map<String, Object> metricSpec, NamedElement parent) {
+        log.debug("decomposeAsIsMetric: ARGS: spec: {}, parent: {}", metricSpec, parent);
+
+        // Get needed fields
+        String metricName = getSpecName(metricSpec);
+        String dialect = getSpecField(metricSpec, "dialect");
+        String definition = getMandatorySpecField(metricSpec, "definition", "As-Is Metric '"+metricName+"' without 'definition': ");
+        Set<String> childMetricNamesSet = getSpecFieldAsList(metricSpec, "metrics")
+                .stream().filter(Objects::nonNull).map(Object::toString).collect(Collectors.toSet());
+
+        NamesKey metricNamesKey = getNamesKey(metricSpec, metricName);
+
+        // Check if definition is empty
+        if (StringUtils.isBlank(definition))
+            throw createException("As-Is metric 'definition' cannot be blank: at '" + metricNamesKey.name() + "': " + metricSpec);
+
+        // Update TC
+        AsIsMetricContext asIsMetricContext = AsIsMetricContext.builder()
+                .name(metricNamesKey.name())
+                .object(metricSpec)
+                .build();
+        _TC.getDAG().addNode(parent, asIsMetricContext);
+
+        // Decompose to metrics provided (i.e. composing or child metrics)
+        // NOTE: child metric decomposition MUST be done before this metric has been altered in any way (or else
+        //       hashCode() will return new value, different from that cached in the DAG)
+        List<MetricContext> childMetricsList = new ArrayList<>();
+        for (String childMetricName : childMetricNamesSet) {
+            NamesKey childMetricNamesKey = getNamesKey(metricSpec, childMetricName);
+            Map<String, Object> childMetricSpec = asMap($$(_TC).allMetrics.get(childMetricNamesKey));
+            log.trace("decomposeAsIsMetric: {}: Checking child metric={} -- key: {}, spec: {}", metricNamesKey.name(), childMetricName, childMetricNamesKey, childMetricSpec);
+            if (childMetricSpec==null)
+                throw createException("Child metric in as-is metric '" + metricName + "' not found: "+childMetricName);
+            MetricContext childMetric = decomposeMetric(
+                    _TC, childMetricSpec, metricNamesKey, asIsMetricContext);
+            log.trace("decomposeAsIsMetric: {}: Checking child metric={} -- childMetric: {}", metricNamesKey.name(), childMetricName, childMetric);
+            if (childMetric!=null)
+                childMetricsList.add(childMetric);
+        }
+        asIsMetricContext.setComposingMetricContexts(childMetricsList);
+
+        // Complete TC update
+        asIsMetricContext.setMetric(AsIsMetric.builder()
+                .name(metricName + DEFAULT_METRIC_NAME_SUFFIX)
+                .dialect(dialect)
+                .definition(definition)
+                .composingMetrics(childMetricsList.stream().map(MetricContext::getMetric).toList())
+                .build());
+
+        return asIsMetricContext;
     }
 
     private MetricContext processRef(TranslationContext _TC, Map<String, Object> metricSpec, NamesKey parentNamesKey, NamedElement parent) {
