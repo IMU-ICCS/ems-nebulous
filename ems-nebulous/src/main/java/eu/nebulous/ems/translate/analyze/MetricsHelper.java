@@ -180,34 +180,6 @@ class MetricsHelper extends AbstractHelper {
 
         NamesKey metricNamesKey = getNamesKey(metricSpec, metricName);
 
-        // Check if formula uses direct EPL
-        /*//XXX:TODO: INCOMPLETE
-        if (formula.startsWith(RuleGenerator.EPL_VALUE)) {
-            String eplStr = formula.substring(RuleGenerator.EPL_VALUE.length());
-
-            // Update TC
-            CompositeMetricContext compositeMetric = CompositeMetricContext.builder()
-                    .name(metricNamesKey.name())
-                    .object(metricSpec)
-                    .metric(CompositeMetric.builder()
-                            .name(metricName + DEFAULT_METRIC_NAME_SUFFIX)
-                            .formula("")
-                            .componentMetrics(List.of())
-                            .build())
-                    .subFeatures(List.of(Feature.builder()
-                            .name(RuleGenerator.TRANSLATION_CONFIG)
-                            .attributes(List.of(Attribute.builder()
-                                            .name(RuleGenerator.EPL_VALUE)
-                                            .value(eplStr)
-                                            .valueType(ValueType.STRING_TYPE)
-                                            .build() ))
-                            .build() ))
-                    .build();
-            _TC.getDAG().addNode(parent, compositeMetric);
-
-            return compositeMetric;
-        }*/
-
         // Check if formula provides EPL SELECT and FROM components
         Set<String> childMetricsSet;
         if (formula.startsWith(RuleGenerator.EPL_FORMULA_TAG)) {
