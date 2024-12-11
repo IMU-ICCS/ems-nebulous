@@ -182,11 +182,12 @@ public class ShorthandsExpansionHelper implements InitializingBean {
 
         // Replace metric specification with a new AS-IS metric
         Map<String, Object> map = asMap(spec);
-        map.clear();
-        map.put("name", name);
         map.put("type", "as-is");
         map.put("definition", definition);
         map.put("metrics", composingMetrics);
+        map.remove("formula");
+        map.remove("window");
+        map.remove("output");
 
         log.debug("ShorthandsExpansionHelper.prepareReplacementMetric: END: spec: {}", spec);
     }
