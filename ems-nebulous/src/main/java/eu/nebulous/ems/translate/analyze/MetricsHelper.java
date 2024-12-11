@@ -417,8 +417,9 @@ class MetricsHelper extends AbstractHelper {
         if (value<=0)
             throw createException("Window size value cannot be zero or negative: at metric '" + metricNamesKey + "': " + windowSpec);
 
-        // Check window size (time) unit
-        ChronoUnit unit = StringUtils.isNotBlank(unitStr)
+        // Check window size unit
+        boolean isEventWin = StringUtils.equalsAnyIgnoreCase(unitStr, "EVENT", "EVENTS");
+        ChronoUnit unit = StringUtils.isNotBlank(unitStr) && ! isEventWin
                 ? normalizeTimeUnit(unitStr) : ChronoUnit.SECONDS;
 
         // Get or infer window size type
@@ -426,7 +427,7 @@ class MetricsHelper extends AbstractHelper {
         if (StringUtils.isNotBlank(sizeTypeStr))
             sizeType = WindowSizeType.valueOf(sizeTypeStr.trim().toUpperCase());
         else
-            sizeType = (unit !=null) ? WindowSizeType.TIME_ONLY : WindowSizeType.MEASUREMENTS_ONLY;
+            sizeType = (unit != null && ! isEventWin) ? WindowSizeType.TIME_ONLY : WindowSizeType.MEASUREMENTS_ONLY;
 
         // Initialize size parameters
         long measurementSize = -1;
