@@ -47,6 +47,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 	private final AtomicBoolean processingResponse = new AtomicBoolean(false);
 	private final AtomicBoolean alreadyInitialized = new AtomicBoolean(false);
 	private ScheduledFuture<?> bootFuture;
+	private ScheduledFuture<?> periodicReportsFuture;
 	private Consumer consumer;
 	private Publisher publisher;
 	private Publisher reportPublisher;
@@ -87,7 +88,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		// Schedule sending EMS Boot message
 		bootFuture = taskScheduler.scheduleAtFixedRate(this::sendEmsBootReadyEvent,
 				Instant.now().plus(bootInitializerProperties.getInitialWait()), bootInitializerProperties.getRetryPeriod());
-		bootFuture = taskScheduler.scheduleAtFixedRate(this::sendPeriodicReport,
+		periodicReportsFuture = taskScheduler.scheduleAtFixedRate(this::sendPeriodicReport,
 				Instant.now().plus(bootInitializerProperties.getInitialWait()), bootInitializerProperties.getRetryPeriod());
 	}
 
