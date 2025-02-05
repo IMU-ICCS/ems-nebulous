@@ -144,9 +144,18 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 	}
 
 	private void processSolutionMessage(Command command) {
-		if (command.body.get("VariableValues") instanceof Map varValues) {
+		log.info("ExternalBrokerListenerService: New Solution received: {}", command.body);
+
+		Object deployed = command.body.get("DeploySolution");
+		boolean deployedFlag = mvvService.isEmpty();	// If no values exist, then it's always deployFlag=true
+		if (! deployedFlag) deployedFlag = (deployed instanceof String s && "true".equalsIgnoreCase(s));
+		if (! deployedFlag) deployedFlag = deployed instanceof Boolean;
+
+		if (deployedFlag && command.body.get("VariableValues") instanceof Map varValues) {
 			log.info("ExternalBrokerListenerService: New Variable Values: {}", varValues);
 			mvvService.translateAndSetValues(varValues);
+		} else {
+			log.info("ExternalBrokerListenerService: Solution ignored: deploy={}, message={}", deployedFlag, command.body);
 		}
 	}
 }

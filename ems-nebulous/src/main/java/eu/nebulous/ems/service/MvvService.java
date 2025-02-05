@@ -36,13 +36,21 @@ public class MvvService implements MetricVariableValuesService {
 		this.bindings = bindings;
 	}
 
-	public void translateAndSetValues(Map<String,Double> varValues) {
+	public boolean isEmpty() {
+		return values.isEmpty();
+	}
+
+	public void translateAndSetValues(Map<String,Object> varValues) {
 		log.info("MvvService.translateAndSetValues: New Variable Values: {}", varValues);
 		Map<String, Double> newValues = new HashMap<>();
 		varValues.forEach((k,v) -> {
 			String constName = bindings.get(k);
-			if (StringUtils.isNotBlank(constName))
-				newValues.put(constName, v);
+			if (StringUtils.isNotBlank(constName)) {
+				if (v instanceof Number n)
+					newValues.put(constName, n.doubleValue());
+				else
+					throw new IllegalArgumentException("Solution variable value is not a number: "+v);
+			}
 		});
 		log.info("MvvService.translateAndSetValues: New Constant values: {}", newValues);
 
