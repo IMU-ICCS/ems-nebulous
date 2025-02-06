@@ -8,12 +8,14 @@
 
 package eu.nebulous.ems.service;
 
+import gr.iccs.imu.ems.control.controller.ControlServiceCoordinator;
 import gr.iccs.imu.ems.translate.TranslationContext;
 import gr.iccs.imu.ems.translate.mvv.MetricVariableValuesService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -25,6 +27,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class MvvService implements MetricVariableValuesService {
+	private final ApplicationContext applicationContext;
+
 	private Map<String,String> bindings = Map.of();
 	private Map<String,Double> values = Map.of();
 
@@ -59,6 +63,9 @@ public class MvvService implements MetricVariableValuesService {
 
 	private void setValues(@NonNull Map<String, Double> newValues) {
 		this.values = newValues;
+		ControlServiceCoordinator controlServiceCoordinator =
+				applicationContext.getBean(ControlServiceCoordinator.class);
+		controlServiceCoordinator.setConstants(newValues, null);
 	}
 
 	@Override
