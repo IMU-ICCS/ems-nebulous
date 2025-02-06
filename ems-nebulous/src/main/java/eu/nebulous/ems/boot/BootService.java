@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.nebulouscloud.exn.core.Publisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -49,6 +50,11 @@ public class BootService {
                     Bindings File: {}
                 Opt. Metrics File: {}
                 """, appId, modelFile, bindingsFile, optimiserMetricsFile);
+
+		if (StringUtils.isAnyBlank(appId, modelFile, bindingsFile, optimiserMetricsFile)) {
+			log.warn("Missing info in EMS Boot entry for app-id: {}", appId);
+			return;
+		}
 
 		String modelStr = Files.readString(Paths.get(properties.getModelsDir(), modelFile));
 		log.debug("Model file contents:\n{}", modelStr);

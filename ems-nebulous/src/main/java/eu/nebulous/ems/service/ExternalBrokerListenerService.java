@@ -152,7 +152,10 @@ public class ExternalBrokerListenerService extends AbstractExternalBrokerService
 		if (! deployedFlag) deployedFlag = deployed instanceof Boolean;
 
 		if (deployedFlag && command.body.get("VariableValues") instanceof Map varValues) {
-			log.info("ExternalBrokerListenerService: New Variable Values: {}", varValues);
+			if (mvvService.isEmpty())
+				log.info("ExternalBrokerListenerService: First Variable Values: {}", varValues);
+			else
+				log.info("ExternalBrokerListenerService: New Variable Values: {}", varValues);
 			mvvService.translateAndSetValues(varValues);
 		} else {
 			log.info("ExternalBrokerListenerService: Solution ignored: deploy={}, message={}", deployedFlag, command.body);
