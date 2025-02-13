@@ -9,6 +9,7 @@
 package eu.nebulous.ems.service;
 
 import gr.iccs.imu.ems.control.controller.ControlServiceCoordinator;
+import gr.iccs.imu.ems.control.controller.ControlServiceRequestInfo;
 import gr.iccs.imu.ems.translate.TranslationContext;
 import gr.iccs.imu.ems.translate.mvv.MetricVariableValuesService;
 import lombok.NonNull;
@@ -65,7 +66,7 @@ public class MvvService implements MetricVariableValuesService {
 		this.values = newValues;
 		ControlServiceCoordinator controlServiceCoordinator =
 				applicationContext.getBean(ControlServiceCoordinator.class);
-		controlServiceCoordinator.setConstants(newValues, null);
+		controlServiceCoordinator.setConstants(newValues, ControlServiceRequestInfo.EMPTY);
 	}
 
 	@Override
