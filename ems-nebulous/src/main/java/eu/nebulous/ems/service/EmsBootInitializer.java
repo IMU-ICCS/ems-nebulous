@@ -160,7 +160,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 			// Process EMS Boot Response message
 			String appId = body.get("application").toString();
 			String modelStr = body.get("metric-model").toString();
-			Map<String,String> bindingsMap = (Map) body.get("bindings");
+			Map<String,Map<String,String>> bindingsMap = (Map) body.get("bindings");
 			List<String> metricsList = (List) body.get("optimiser-metrics");
 			log.info("""
 					EmsBootInitializer: Received an EMS Boot Response:
@@ -202,7 +202,7 @@ public class EmsBootInitializer extends AbstractExternalBrokerService implements
 		log.info("Set optimiser metrics to: {}", metricsList);
 	}
 
-	public void processBindings(String appId, Map<String, String> bindingsMap) {
+	public void processBindings(String appId, Map<String, Map<String, String>> bindingsMap) {
 		applicationContext.getBean(MvvService.class).setBindings(bindingsMap);
 		log.info("Set MVV bindings to: {}", bindingsMap);
 	}

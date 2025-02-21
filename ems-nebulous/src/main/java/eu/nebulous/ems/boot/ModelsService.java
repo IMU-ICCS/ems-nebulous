@@ -33,6 +33,9 @@ public class ModelsService implements InitializingBean {
 	final static String BINDINGS_FILE_KEY = "bindings-file";
 	final static String OPTIMISER_METRICS_FILE_KEY = "optimiser-metrics-file";
 
+	public final static String SIMPLE_BINDING_KEY = "simple-bindings";
+	public final static String COMPOSITE_BINDING_KEY = "composite-bindings";
+
 	private final TranslationService translationService;
 	private final EmsBootProperties properties;
 	private final ObjectMapper objectMapper;
@@ -65,19 +68,41 @@ public class ModelsService implements InitializingBean {
 		log.debug("Received a new DSL Generic message from external broker: {}", command.body());
 
 		// Extract EMS constants-to-Optimizer variables bindings
-		Map<String, String> bindingsMap = null;
+		Map<String,Map<String, String>> bindingsMap = null;
 		try {
 			List<Map<String,Object>> list = (List) command.body().get("utilityFunctions");
 			if (list==null || list.isEmpty()) {
 				log.warn("No utilityFunctions found in DSL generic message: {}", command.body());
 			} else {
-				bindingsMap = list.stream()
-						.filter(uf -> "constant".equalsIgnoreCase( uf.getOrDefault("type", "").toString() ))
+				Map<String, String> simpleBindingsMap = list.stream()
+						.filter(uf -> "constant".equalsIgnoreCase(uf.getOrDefault("type", "").toString()))
+						.filter(uf -> ((List) ((Map) uf.get("expression")).get("variables")).size() == 1
+								&& StringUtils.equals(
+										((Map) uf.get("expression")).getOrDefault("formula", "").toString().trim(),
+										((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("name", "").toString().trim()
+								)
+						)
 						.collect(Collectors.toMap(
-								uf -> ((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("value", "").toString(),
-								uf -> uf.getOrDefault("name", "").toString()
+								uf -> ((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("value", "").toString().trim(),
+								uf -> uf.getOrDefault("name", "").toString().trim()
 						));
-				if (bindingsMap.isEmpty())
+				Map<String, String> compositeBindingsMap = list.stream()
+						.filter(uf -> "constant".equalsIgnoreCase(uf.getOrDefault("type", "").toString()))
+						.filter(uf -> ((List) ((Map) uf.get("expression")).get("variables")).size() > 1
+								|| ! StringUtils.equals(
+										((Map) uf.get("expression")).getOrDefault("formula", "").toString().trim(),
+										((Map) ((List) ((Map) uf.get("expression")).get("variables")).get(0)).getOrDefault("name", "").toString().trim()
+								)
+						)
+						.collect(Collectors.toMap(
+								uf -> ((Map) uf.get("expression")).getOrDefault("formula", "").toString().trim(),
+								uf -> uf.getOrDefault("name", "").toString().trim()
+						));
+				bindingsMap = Map.of(
+						SIMPLE_BINDING_KEY, simpleBindingsMap,
+						COMPOSITE_BINDING_KEY, compositeBindingsMap
+				);
+				if (simpleBindingsMap.isEmpty())
 					log.warn("No bindings found in DSL generic message: {}", command.body());
 			}
 		} catch (Exception e) {
