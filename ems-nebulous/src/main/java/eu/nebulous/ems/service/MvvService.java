@@ -18,13 +18,17 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -41,6 +45,24 @@ public class MvvService implements MetricVariableValuesService {
 
 	public void setBindings(@NonNull Map<String,Map<String,String>> bindings) {
 		this.bindings = bindings;
+	}
+
+	public Map<String,Double> getValues() {
+		return new LinkedHashMap<>(values);
+	}
+
+	public void setValues(@NonNull Map<String,Double> values) {
+		this.values.clear();
+		this.values.putAll(values);
+	}
+
+	@Scheduled(fixedRate = 60, timeUnit = TimeUnit.SECONDS)
+	public void printValues() {
+		Map<String, Double> vals = getValues();
+		if (vals==null || vals.isEmpty())
+			log.debug("MvvService: Curr. Values: ---");
+		else
+			log.debug("MvvService: Curr. Values: {}", vals);
 	}
 
 	public boolean isEmpty() {
@@ -68,13 +90,16 @@ public class MvvService implements MetricVariableValuesService {
 
 		// Process composite constants
 		Map<String, String> pending = new HashMap<>(bindings.get(ModelsService.COMPOSITE_BINDING_KEY));
+		@NotNull final Map<String, Double> varValues1 = varValues.entrySet().stream().collect(Collectors.toMap(
+				Map.Entry::getKey, e -> ((Number) e.getValue()).doubleValue()
+		));
 		while (! pending.isEmpty()) {
 			Map<String, String> newPending = new HashMap<>();
 			pending.forEach((formula, constName) -> {
 				if (StringUtils.isNotBlank(formula) && StringUtils.isNotBlank(constName)) {
 					try {
 						log.trace("MvvService.translateAndSetValues:   Calculating Composite Constant value: {} ::= {} -- Values: {}", constName, formula, newValues);
-						Double formulaValue = MathUtil.eval(formula, newValues);
+						Double formulaValue = MathUtil.eval(formula, varValues1);
 						newValues.put(constName, formulaValue);
 						log.trace("MvvService.translateAndSetValues:   Added Composite Constant value: {} = {}", constName, formulaValue);
 					} catch (Exception e) {
@@ -89,10 +114,10 @@ public class MvvService implements MetricVariableValuesService {
 		}
 		log.info("MvvService.translateAndSetValues: New Constant values: {}", newValues);
 
-		setValues(newValues);
+		setControlServiceConstants(newValues);
 	}
 
-	private void setValues(@NonNull Map<String, Double> newValues) {
+	private void setControlServiceConstants(@NonNull Map<String, Double> newValues) {
 		this.values = newValues;
 		ControlServiceCoordinator controlServiceCoordinator =
 				applicationContext.getBean(ControlServiceCoordinator.class);

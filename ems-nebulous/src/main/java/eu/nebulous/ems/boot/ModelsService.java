@@ -10,6 +10,8 @@ package eu.nebulous.ems.boot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.nebulous.ems.translate.TranslationService;
+import gr.iccs.imu.ems.brokercep.cep.MathUtil;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -21,8 +23,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +35,7 @@ import java.util.stream.Collectors;
 public class ModelsService implements InitializingBean {
 	final static String MODEL_FILE_KEY = "model-file";
 	final static String BINDINGS_FILE_KEY = "bindings-file";
+	final static String SOLUTIONS_FILE_KEY = "solutions-file";
 	final static String OPTIMISER_METRICS_FILE_KEY = "optimiser-metrics-file";
 
 	public final static String SIMPLE_BINDING_KEY = "simple-bindings";
@@ -40,6 +45,8 @@ public class ModelsService implements InitializingBean {
 	private final EmsBootProperties properties;
 	private final ObjectMapper objectMapper;
 	private final IndexService indexService;
+
+	private final Map<String,Map<String,Double>> allVariableValues = new HashMap<>();
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -95,7 +102,28 @@ public class ModelsService implements InitializingBean {
 								)
 						)
 						.collect(Collectors.toMap(
-								uf -> ((Map) uf.get("expression")).getOrDefault("formula", "").toString().trim(),
+								uf -> {
+									log.trace("Got composite constant entry: {}", uf);
+
+									// Get UF variable names-to-vela variables mapping
+									final Map<String,String> varBindings = new HashMap<>();
+									((List) ((Map) uf.get("expression")).get("variables")).forEach(o -> {
+										if (o instanceof Map map) {
+											String varName = map.getOrDefault("name", "").toString();
+											String varValue = map.getOrDefault("value", "").toString();
+											varBindings.put(varName, varValue);
+										}
+									});
+									log.trace("Composite constant bindings: {}", varBindings);
+
+									// Rename formula variables
+									String formula = ((Map) uf.get("expression")).getOrDefault("formula", "").toString().trim();
+									log.trace("Composite constant original formula: {}", formula);
+									@NonNull String newFormula = MathUtil.renameFormulaArguments(formula, varBindings);
+									log.trace("Composite constant modified formula: {}", newFormula);
+
+									return newFormula;
+								},
 								uf -> uf.getOrDefault("name", "").toString().trim()
 						));
 				bindingsMap = Map.of(
@@ -116,7 +144,7 @@ public class ModelsService implements InitializingBean {
 		storeToFile(bindingsFile, objectMapper.writeValueAsString(bindingsMap));
 		log.info("Stored bindings in file: app-id={}, file={}", appId, bindingsFile);
 
-		// Add appId-modelFile entry in the stored Index
+		// Add appId-bindingsMap entry in the stored Index
 		indexService.storeToIndex(appId, Map.of(BINDINGS_FILE_KEY, bindingsFile));
 
 		return "OK";
@@ -150,8 +178,61 @@ public class ModelsService implements InitializingBean {
 		storeToFile(metricsFile, objectMapper.writeValueAsString(metricsList));
 		log.info("Stored metrics in file: app-id={}, file={}", appId, metricsFile);
 
-		// Add appId-modelFile entry in the stored Index
+		// Add appId-metricsList entry in the stored Index
 		indexService.storeToIndex(appId, Map.of(OPTIMISER_METRICS_FILE_KEY, metricsFile));
+
+		return "OK";
+	}
+
+	String extractSolution(Command command, String appId) throws IOException {
+		// Process Optimiser Metrics message
+		log.debug("Received a new Solution message from external broker: {}", command.body());
+
+		// Extract Optimizer metrics
+		boolean deployFlag;
+		Map<String,Double> varValues;
+		try {
+			deployFlag = Boolean.parseBoolean(command.body().getOrDefault("DeploySolution", "false").toString());
+			Map<String,Object> map = (Map) command.body().get("VariableValues");
+			if (map==null || map.isEmpty()) {
+				log.warn("No VariableValues found in Solution message: {}", command.body());
+				return "ERROR: No VariableValues found in Solution message: "+command.body();
+			} else {
+				Map<String, Object> varValuesObj = map.entrySet().stream()
+						.filter(e -> StringUtils.isNotBlank(e.getKey()))
+						.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+				if (varValuesObj.isEmpty()) {
+					log.warn("Blank VariableValues found in Solution message: {}", command.body());
+					return "ERROR: Blank VariableValues found in Solution message: "+command.body();
+				}
+
+				// Update variable values
+				varValues = varValuesObj.entrySet().stream()
+						.filter(e -> StringUtils.isNotBlank(e.getKey()))
+						.filter(e -> e.getValue()!=null)
+						.filter(e -> e.getValue() instanceof Number)
+						.collect(Collectors.toMap(
+								Map.Entry::getKey,
+								e->((Number)e.getValue()).doubleValue()
+						));
+			}
+		} catch (Exception e) {
+			log.warn("Error while extracting VariableValues from Solution message: ", e);
+			return "ERROR: Error while extracting VariableValues from Solution message: "+e.getMessage();
+		}
+
+		// Get previous application (UF) variable values (solution)
+		Map<String, Double> appVariableValues = allVariableValues.computeIfAbsent(appId, app_id -> new HashMap<>());
+		if (appVariableValues.isEmpty() || deployFlag)
+			appVariableValues.putAll(varValues);
+
+		// Store app solution in models store
+		String solutionFile = getFileName("sol", appId, "json");
+        storeToFile(solutionFile, objectMapper.writeValueAsString(appVariableValues));
+		log.info("Stored solution in file: app-id={}, file={}", appId, solutionFile);
+
+		// Add appId-solutionFile entry in the stored Index
+		indexService.storeToIndex(appId, Map.of(SOLUTIONS_FILE_KEY, solutionFile));
 
 		return "OK";
 	}
