@@ -69,6 +69,7 @@ public class K8sPodWatcher implements InitializingBean {
                 if (podsList==null) {
                     log.warn("K8sPodWatcher: PROBLEM with Kubernetes? No pods retrieved from K8S API server");
                     log.debug("K8sPodWatcher: END");
+                    return;
                 }
 
                 podsList.forEach(pod -> {
