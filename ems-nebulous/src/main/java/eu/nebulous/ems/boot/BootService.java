@@ -49,7 +49,7 @@ public class BootService implements InitializingBean {
 		}
 		String modelFile = entry.get(ModelsService.MODEL_FILE_KEY);
 		String bindingsFile = entry.get(ModelsService.BINDINGS_FILE_KEY);
-		String solutionFile = entry.get(ModelsService.SOLUTIONS_FILE_KEY);
+		String solutionFile = entry.get(ModelsService.SOLUTION_FILE_KEY);
 		String optimiserMetricsFile = entry.get(ModelsService.OPTIMISER_METRICS_FILE_KEY);
 		log.info("""
                 Received EMS Boot request:

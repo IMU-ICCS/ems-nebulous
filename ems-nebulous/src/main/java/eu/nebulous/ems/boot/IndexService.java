@@ -155,7 +155,7 @@ public class IndexService implements InitializingBean {
 	}
 
 	public Map<String,Double> getAppSolution(@NonNull String appId) throws IOException {
-		String fileName = getAppData(appId).get(ModelsService.SOLUTIONS_FILE_KEY);
+		String fileName = getAppData(appId).get(ModelsService.SOLUTION_FILE_KEY);
 		String solutionStr = applicationContext.getBean(ModelsService.class).readFromFile(fileName);
 		return objectMapper.readValue(solutionStr, Map.class);
 	}
