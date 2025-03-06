@@ -140,7 +140,12 @@ public class ModelsService implements InitializingBean {
 
 		// Store bindings in models store
 		String bindingsFile = getFileName("bindings", appId, "json");
-		if (bindingsMap==null) bindingsMap = Map.of();
+		if (bindingsMap==null) {
+			bindingsMap = Map.of(
+					SIMPLE_BINDING_KEY, Map.of(),
+					COMPOSITE_BINDING_KEY, Map.of()
+			);
+		}
 		storeToFile(bindingsFile, objectMapper.writeValueAsString(bindingsMap));
 		log.info("Stored bindings in file: app-id={}, file={}", appId, bindingsFile);
 
