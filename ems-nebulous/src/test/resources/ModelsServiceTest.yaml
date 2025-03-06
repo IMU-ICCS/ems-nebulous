@@ -241,3 +241,33 @@ extractBindings:
     		}
         ]
     }
+
+extractSolution:
+  - | # Test with a proper solution
+    {
+      "uuid": "12345678-abcb-def0-123b-4567890abcde",
+      "DeploySolution": false,
+      "VariableValues": { "spec_components_0_traits_0_properties_replicas": 1.0, "spec_components_1_traits_0_properties_replicas": 2.0 }
+    }
+  - | # Test with a solution with no 'DeploySolution'
+    {
+      "uuid": "12345678-abcb-def0-123b-4567890abcde",
+      "VariableValues": { "spec_components_0_traits_0_properties_replicas": 1.0, "spec_components_1_traits_0_properties_replicas": 2.0 }
+    }
+  - | # Test with a solution with no 'VariableValues'
+    {
+      "uuid": "12345678-abcb-def0-123b-4567890abcde",
+      "DeploySolution": false
+    }
+  - | # Test with an empty solution
+    { }
+  - | # Test with a solution with items of wrong type
+    {
+      "uuid": "12345678-abcb-def0-123b-4567890abcde",
+      "VariableValues": { "spec_components_0_traits_0_properties_replicas": "1.0" }
+    }
+  - | # Test with a solution with null items
+    {
+      "uuid": "12345678-abcb-def0-123b-4567890abcde",
+      "VariableValues": { "spec_components_0_traits_0_properties_replicas": null }
+    }
