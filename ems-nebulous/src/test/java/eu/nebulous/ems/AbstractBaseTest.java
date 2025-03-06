@@ -1,20 +1,28 @@
 package eu.nebulous.ems;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import eu.nebulous.ems.boot.EmsBootProperties;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.yaml.snakeyaml.Yaml;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.TestInstance;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractBaseTest {
 
+    public static final String COLOR_WHITE = "\u001b[1;97m";
     public static final String COLOR_GREEN = "\u001b[32m";
     public static final String COLOR_YELLOW = "\u001b[33m";
     public static final String COLOR_RED = "\u001b[31m";
@@ -22,53 +30,80 @@ public abstract class AbstractBaseTest {
     public static final String COLOR_MAGENTA = "\u001b[35m";
     public static final String COLOR_RESET = "\u001b[0m";
 
+    public static final String NO_RESULTS_COLORED = color("(no result returned)", "WARN");
+
+    protected String callerClass = getClass().getSimpleName();
+    protected ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     protected ObjectMapper objectMapper = new ObjectMapper();
+
+    protected static LinkedHashMap<String,Map<String,String>> globalResults = new LinkedHashMap<>();
+    protected static boolean printGlobalResultsSummary = true;
+    protected LinkedHashMap<String,String> results = new LinkedHashMap<>();
+    protected boolean printResultsSummary = false;
 
     @FunctionalInterface
     public interface CheckedBiFunction<T, U, R> {
         R apply(T t, U u) throws Exception;
     }
 
-    protected void loadAndRunTests(@NonNull Object caller, @NonNull String key, @NonNull String testsFile, @NonNull CheckedBiFunction<String, String, String> testRunner) throws IOException {
-        try (InputStream inputStream = new FileInputStream(testsFile)) {
-            String callerClass = caller.getClass().getSimpleName();
-            Yaml yaml = new Yaml();
-            Map<String, Object> data = yaml.load(inputStream);
-            Object testData = data.get(key);
-            if (testData==null) {
-                log.warn(color("{}: Key not found: {}", "EXCEPTION"), callerClass, key);
-                return;
-            }
+    public AbstractBaseTest() {
+        globalResults.put(getClass().getSimpleName(), results);
+    }
 
-            int testNum = 1;
-            if (testData instanceof Collection<?> testsList) {
-                // If test data object is a Collection iterate through it and run each test item
-                for (Object jsonObj : testsList) {
-                    runTest(callerClass, key, testNum, testRunner, jsonObj);
-                    testNum++;
-                }
-            } else {
-                // If test data object is NOT a Collection then run ONE test passing it the test data object
-                runTest(callerClass, key, testNum, testRunner, testData);
-            }
+    protected EmsBootProperties initializeEmsBootProperties() {
+        EmsBootProperties properties = new EmsBootProperties();
+        properties.setModelsDir("target/nebulous-tests/"+getClass().getSimpleName());
+        Paths.get(properties.getModelsDir()).toFile().mkdirs();
+        properties.setModelsIndexFile(properties.getModelsDir()+"/index.json");
+        return properties;
+    }
+
+    protected Map<String, Object> parserYaml(@NonNull String testsFile) throws IOException {
+        try (InputStream inputStream = new FileInputStream(testsFile)) {
+            return yamlMapper.readValue(inputStream, Map.class);
         }
     }
 
-    private void runTest(String callerClass, String key, int testNum, CheckedBiFunction<String, String, String> testRunner, Object jsonObj) {
+    protected void loadAndRunTests(@NonNull String key, @NonNull String testsFile,
+                                   @NonNull CheckedBiFunction<String, Object, String> testRunner) throws IOException
+    {
+        Map<String, Object> data = parserYaml(testsFile);
+        Object testData = data.get(key);
+        if (testData==null) {
+            log.warn(color("{}: Key not found or empty: {}", "EXCEPTION"), callerClass, key);
+            return;
+        }
+
+        int testNum = 1;
+        if (testData instanceof Collection<?> testsList) {
+            // If test data object is a Collection iterate through it and run each test item
+            for (Object jsonObj : testsList) {
+                runTest(key, testNum, testRunner, jsonObj);
+                testNum++;
+            }
+        } else {
+            // If test data object is NOT a Collection then run ONE test passing it the test data object
+            runTest(key, testNum, testRunner, testData);
+        }
+    }
+
+    private void runTest(String key, int testNum, CheckedBiFunction<String, Object, String> testRunner, Object dataObj) {
         String testDescription = String.format("Test %s #%d", key, testNum);
         try {
             log.info(color("{}:", "INFO"), callerClass);
             log.info(color("{}: ---------------------------------------------------------------", "INFO"), callerClass);
-            log.info(color("{}: {}: json:\n{}", "INFO"), callerClass, testDescription, jsonObj);
-            String result = testRunner.apply(testDescription, jsonObj.toString());
+            log.info(color("{}: {}: json:\n{}", "INFO"), callerClass, testDescription, dataObj);
+            String result = testRunner.apply(testDescription, dataObj);
+            results.put(testDescription, result);
             log.info(color("{}: {}: Result: {}", result), callerClass, testDescription,
                     Objects.requireNonNullElse(result, color("(no result returned)", "WARN")));
         } catch (Exception e) {
-            log.warn("{}: {}: EXCEPTION: ", callerClass, testDescription, e);
+            log.warn(color("{}: {}: EXCEPTION: ", "EXCEPTION"), callerClass, testDescription, e);
+            results.put(testDescription, "EXCEPTION: "+e.getMessage());
         }
     }
 
-    private String color(String message, String result) {
+    private static String color(String message, String result) {
         if (result==null) result = "";
         result = result.split("[^\\p{Alnum}]", 2)[0].toUpperCase();
         String color = null;
@@ -78,9 +113,47 @@ public abstract class AbstractBaseTest {
             case "EXCEPTION" -> color = COLOR_RED;
             case "INFO" -> color = COLOR_BLUE;
             case "WARN" -> color = COLOR_MAGENTA;
+            case "WHITE" -> color = COLOR_WHITE;
         }
         return color==null
                 ? message
                 : color + message + COLOR_RESET;
+    }
+
+    public Map toMap(Object obj) throws IOException {
+        if (obj instanceof Map map) return map;
+        if (obj instanceof String s) return yamlMapper.readValue(s, Map.class);
+        throw new ClassCastException("toMap");
+    }
+
+    @AfterAll
+    public void printResultsSummary() {
+        if (! printResultsSummary) return;
+        StringBuilder sb = new StringBuilder();
+        doPrintResults(callerClass, results, sb);
+        log.info(sb.toString());
+    }
+
+    @AfterAll
+    public static void printGlobalResultsSummary() {
+        if (! printGlobalResultsSummary) return;
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n");
+        sb.append(color("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "WHITE")).append("\n");
+        sb.append(color("━━━━━      Global Test Results      ━━━━━", "WHITE")).append("\n");
+        sb.append(color("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "WHITE")).append("\n");
+        globalResults.forEach((callerClass, results) -> {
+            doPrintResults(callerClass, results, sb);
+        });
+        log.info(sb.toString());
+    }
+
+    private static void doPrintResults(String callerClass, Map<String,String> results, StringBuilder sb) {
+        sb.append("\n");
+        sb.append(String.format(color("  Test Results for: %s", "INFO"), callerClass)).append("\n");
+        final AtomicInteger c = new AtomicInteger(1);
+        results.forEach((testDescription, result) -> {
+            sb.append(String.format("     %s. %s: %s", c.getAndIncrement(), testDescription, Objects.requireNonNullElse(color(result, result), NO_RESULTS_COLORED))).append("\n");
+        });
     }
 }
