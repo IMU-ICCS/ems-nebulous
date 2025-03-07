@@ -72,7 +72,7 @@ class BootServiceTest extends AbstractBaseTest {
     void processEmsBootMessage() throws IOException {
         loadAndRunTests("processEmsBootMessage", TESTS_YAML_FILE, (testDescription, yaml) -> {
             Map testData = toMap(yaml);
-            log.info("BootServiceTest: {}: testData: {}", testDescription, testData);
+            log.debug("BootServiceTest: {}: testData: {}", testDescription, testData);
             String title = testData.getOrDefault("title", "").toString();
             String expected = testData.getOrDefault("expected_outcome", "").toString();
 

@@ -120,8 +120,8 @@ public abstract class AbstractBaseTest {
     private String getPassOrFail(String result, String expectedOutcome) {
         if (StringUtils.isBlank(expectedOutcome)) return "";
         if (result==null) result = "";
-        result = result.split("[^\\p{Alnum}]", 2)[0].toUpperCase();
-        return StringUtils.equalsIgnoreCase(result, expectedOutcome)
+        String resultFirst = result.split("[^\\p{Alnum}]", 2)[0].toUpperCase();
+        return StringUtils.equalsIgnoreCase(resultFirst, expectedOutcome) || expectedOutcome.equals(result)
                 ? color("PASS","PASS") : color("FAIL", "FAIL");
     }
 
@@ -177,7 +177,7 @@ public abstract class AbstractBaseTest {
         sb.append(String.format(color("  Test Results for: %s", "INFO"), callerClass)).append("\n");
         final AtomicInteger c = new AtomicInteger(1);
         results.forEach((testDescription, result) -> {
-            sb.append(String.format("     %s. %s: %s", c.getAndIncrement(), testDescription, Objects.requireNonNullElse(color(result, result), NO_RESULTS_COLORED))).append("\n");
+            sb.append(String.format("     %s. %s: %s", c.getAndIncrement(), testDescription, StringUtils.firstNonBlank(color(result, result), NO_RESULTS_COLORED))).append("\n");
         });
     }
 }
