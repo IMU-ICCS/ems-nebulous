@@ -8,39 +8,38 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.provider.Arguments;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractBaseTest {
 
-    public static final String COLOR_WHITE = "\u001b[1;97m";
-    public static final String COLOR_GREEN = "\u001b[32m";
-    public static final String COLOR_YELLOW = "\u001b[33m";
-    public static final String COLOR_RED = "\u001b[31m";
-    public static final String COLOR_BLUE = "\u001b[34m";
-    public static final String COLOR_MAGENTA = "\u001b[35m";
-    public static final String COLOR_GREEN_INTENSE = "\u001b[1m\u001b[4m\u001b[92m";
-    public static final String COLOR_RED_INTENSE = "\u001b[1m\u001b[4m\u001b[91m";
-    public static final String COLOR_RESET = "\u001b[0m";
+    protected static final String COLOR_WHITE = "\u001b[1;97m";
+    protected static final String COLOR_GREEN = "\u001b[32m";
+    protected static final String COLOR_YELLOW = "\u001b[33m";
+    protected static final String COLOR_RED = "\u001b[31m";
+    protected static final String COLOR_BLUE = "\u001b[34m";
+    protected static final String COLOR_MAGENTA = "\u001b[35m";
+    protected static final String COLOR_GREEN_INTENSE = "\u001b[1m\u001b[4m\u001b[92m";
+    protected static final String COLOR_RED_INTENSE = "\u001b[1m\u001b[4m\u001b[91m";
+    protected static final String COLOR_RESET = "\u001b[0m";
 
-    public static final String NO_RESULTS_COLORED = color("(no result returned)", "WARN");
+    protected static final String NO_RESULTS_COLORED = color("(no result returned)", "WARN");
 
-    protected String callerClass = getClass().getSimpleName();
-    protected ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-    protected ObjectMapper objectMapper = new ObjectMapper();
+    protected static ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    protected static ObjectMapper objectMapper = new ObjectMapper();
 
     protected static LinkedHashMap<String,Map<String,String>> globalResults = new LinkedHashMap<>();
     protected static boolean printGlobalResultsSummary = true;
+
+    protected String callerClass = getClass().getSimpleName();
     protected LinkedHashMap<String,String> results = new LinkedHashMap<>();
     protected boolean printResultsSummary = false;
 
@@ -61,7 +60,7 @@ public abstract class AbstractBaseTest {
         return properties;
     }
 
-    protected Map<String, Object> parserYaml(@NonNull String testsFile) throws IOException {
+    protected static Map<String, Object> parserYaml(@NonNull String testsFile) throws IOException {
         try (InputStream inputStream = new FileInputStream(testsFile)) {
             return yamlMapper.readValue(inputStream, Map.class);
         }
@@ -123,6 +122,37 @@ public abstract class AbstractBaseTest {
         String resultFirst = result.split("[^\\p{Alnum}]", 2)[0].toUpperCase();
         return StringUtils.equalsIgnoreCase(resultFirst, expectedOutcome) || expectedOutcome.equals(result)
                 ? color("PASS","PASS") : color("FAIL", "FAIL");
+    }
+
+    public static List<Arguments> getTestsFromYamlFile(@NonNull Object caller, @NonNull String testsFile, String key) throws IOException {
+        String callerClass = (caller instanceof Class c)
+                ? c.getSimpleName() : caller.getClass().getSimpleName();
+        Map<String, Object> data = parserYaml(testsFile);
+        Object testData = data.get(key);
+        if (testData==null) {
+            log.warn(color("{}: Key not found or empty: {}", "EXCEPTION"), callerClass, key);
+            return List.of();
+        }
+        if (testData instanceof List<?> list) {
+            AtomicInteger testNum = new AtomicInteger(1);
+            return list.stream()
+                    .map(e -> {
+                        String testDescription = color(String.format("Test %s #%d", key, testNum.getAndIncrement()), "INFO");
+                        if (e instanceof String testStr)
+                            return Arguments.of(testDescription, testStr);
+                        if (e instanceof Map testMap) {
+                            String title = Objects.requireNonNullElse(testMap.getOrDefault("title", "").toString(), "");
+                            String expected = Objects.requireNonNullElse(testMap.getOrDefault("expected_outcome", "").toString(), "");
+                            if (StringUtils.isNotBlank(title))
+                                testDescription += ": "+color(title, "WHITE");
+                            return Arguments.of(testDescription, testMap, expected);
+                        }
+                        throw new IllegalArgumentException("Test item is neither string nor map, in key '"+key+"' at file "+testsFile);
+                    })
+                    .toList();
+        }
+        log.warn(color("{}: Key '{}' returned a non-map: {}", "EXCEPTION"), callerClass, key, testData);
+        return List.of();
     }
 
     private static String color(String message, String result) {
