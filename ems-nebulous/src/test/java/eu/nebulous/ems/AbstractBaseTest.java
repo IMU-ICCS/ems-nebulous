@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import eu.nebulous.ems.boot.EmsBootProperties;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.TestInstance;
 
@@ -28,6 +29,8 @@ public abstract class AbstractBaseTest {
     public static final String COLOR_RED = "\u001b[31m";
     public static final String COLOR_BLUE = "\u001b[34m";
     public static final String COLOR_MAGENTA = "\u001b[35m";
+    public static final String COLOR_GREEN_INTENSE = "\u001b[1m\u001b[4m\u001b[92m";
+    public static final String COLOR_RED_INTENSE = "\u001b[1m\u001b[4m\u001b[91m";
     public static final String COLOR_RESET = "\u001b[0m";
 
     public static final String NO_RESULTS_COLORED = color("(no result returned)", "WARN");
@@ -65,7 +68,7 @@ public abstract class AbstractBaseTest {
     }
 
     protected void loadAndRunTests(@NonNull String key, @NonNull String testsFile,
-                                   @NonNull CheckedBiFunction<String, Object, String> testRunner) throws IOException
+                                   @NonNull CheckedBiFunction<String, Object, Object> testRunner) throws IOException
     {
         Map<String, Object> data = parserYaml(testsFile);
         Object testData = data.get(key);
@@ -87,20 +90,39 @@ public abstract class AbstractBaseTest {
         }
     }
 
-    private void runTest(String key, int testNum, CheckedBiFunction<String, Object, String> testRunner, Object dataObj) {
+    private void runTest(String key, int testNum, CheckedBiFunction<String, Object, Object> testRunner, Object dataObj) {
         String testDescription = String.format("Test %s #%d", key, testNum);
         try {
             log.info(color("{}:", "INFO"), callerClass);
             log.info(color("{}: ---------------------------------------------------------------", "INFO"), callerClass);
             log.info(color("{}: {}: json:\n{}", "INFO"), callerClass, testDescription, dataObj);
-            String result = testRunner.apply(testDescription, dataObj);
-            results.put(testDescription, result);
+            Object resultObj = testRunner.apply(testDescription, dataObj);
+            String result;
+            String title = "";
+            String expected_outcome = null;
+            if (resultObj instanceof String s) result = s;
+            else if (resultObj instanceof Map m) {
+                result = m.getOrDefault("result", "").toString();
+                title = m.getOrDefault("title", "").toString();
+                if (! title.trim().isEmpty()) title = ": "+title+":\n          ";
+                expected_outcome = m.getOrDefault("expected_outcome", "").toString();
+            } else result = resultObj.toString();
+            results.put(testDescription + color(title,"WHITE"),
+                    getPassOrFail(result, expected_outcome) + " " + color(result,result));
             log.info(color("{}: {}: Result: {}", result), callerClass, testDescription,
                     Objects.requireNonNullElse(result, color("(no result returned)", "WARN")));
         } catch (Exception e) {
             log.warn(color("{}: {}: EXCEPTION: ", "EXCEPTION"), callerClass, testDescription, e);
             results.put(testDescription, "EXCEPTION: "+e.getMessage());
         }
+    }
+
+    private String getPassOrFail(String result, String expectedOutcome) {
+        if (StringUtils.isBlank(expectedOutcome)) return "";
+        if (result==null) result = "";
+        result = result.split("[^\\p{Alnum}]", 2)[0].toUpperCase();
+        return StringUtils.equalsIgnoreCase(result, expectedOutcome)
+                ? color("PASS","PASS") : color("FAIL", "FAIL");
     }
 
     private static String color(String message, String result) {
@@ -114,6 +136,8 @@ public abstract class AbstractBaseTest {
             case "INFO" -> color = COLOR_BLUE;
             case "WARN" -> color = COLOR_MAGENTA;
             case "WHITE" -> color = COLOR_WHITE;
+            case "PASS" -> color = COLOR_GREEN_INTENSE;
+            case "FAIL" -> color = COLOR_RED_INTENSE;
         }
         return color==null
                 ? message
@@ -123,7 +147,7 @@ public abstract class AbstractBaseTest {
     public Map toMap(Object obj) throws IOException {
         if (obj instanceof Map map) return map;
         if (obj instanceof String s) return yamlMapper.readValue(s, Map.class);
-        throw new ClassCastException("toMap");
+        throw new ClassCastException("toMap: Cannot cast "+obj+" to Map");
     }
 
     @AfterAll

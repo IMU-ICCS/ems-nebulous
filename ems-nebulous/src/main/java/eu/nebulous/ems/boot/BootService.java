@@ -9,7 +9,6 @@
 package eu.nebulous.ems.boot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.nebulouscloud.exn.core.Publisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 @Slf4j
 @Service
@@ -36,7 +36,7 @@ public class BootService implements InitializingBean {
 		log.info("EMS Boot Service: {}", properties.isEnabled() ? "enabled" : "disabled");
 	}
 
-	void processEmsBootMessage(Command command, String appId, Publisher emsBootResponsePublisher) throws IOException {
+	String processEmsBootMessage(Command command, String appId, BiConsumer<Map,String> emsBootResponsePublisher) throws IOException {
 		// Process EMS Boot message
 		log.info("Received a new EMS Boot message from external broker: {}", command.body());
 
@@ -44,8 +44,9 @@ public class BootService implements InitializingBean {
 		Map<String, String> entry = indexService.getFromIndex(appId);
 		log.debug("Index entry for app-id: {},  entry: {}", appId, entry);
 		if (entry==null) {
-			log.warn("No EMS Boot entry found for app-id: {}", appId);
-			return;
+			String msg = "No EMS Boot entry found for app-id: " + appId;
+			log.warn(msg);
+			return "ERROR "+msg;
 		}
 		String modelFile = entry.get(ModelsService.MODEL_FILE_KEY);
 		String bindingsFile = entry.get(ModelsService.BINDINGS_FILE_KEY);
@@ -61,8 +62,9 @@ public class BootService implements InitializingBean {
                 """, appId, modelFile, bindingsFile, solutionFile, optimiserMetricsFile);
 
 		if (StringUtils.isAnyBlank(appId, modelFile, bindingsFile, optimiserMetricsFile)) {
-			log.warn("Missing info in EMS Boot entry for app-id: {}", appId);
-			return;
+			String msg = "Missing info in EMS Boot entry for app-id: " + appId;
+			log.warn(msg);
+			return "ERROR "+msg;
 		}
 
 		String modelStr = readFileContentsSafe(modelFile);
@@ -88,8 +90,10 @@ public class BootService implements InitializingBean {
 				"solution", solutionMap,
 				"optimiser-metrics", metricsList
 		);
-		emsBootResponsePublisher.send(message, appId);
+		log.debug("EMS Boot response message: {}", message);
+		emsBootResponsePublisher.accept(message, appId);
 		log.info("EMS Boot response sent");
+		return "OK";
 	}
 
 	protected String readFileContentsSafe(String file) {
