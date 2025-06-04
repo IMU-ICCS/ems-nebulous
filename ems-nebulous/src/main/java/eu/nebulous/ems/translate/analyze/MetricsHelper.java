@@ -564,7 +564,7 @@ class MetricsHelper extends AbstractHelper {
             Attribute eplAttr = Attribute.builder()
                     .name(RuleGenerator.EPL_VALUE)
                     .valueType(ValueType.STRING_TYPE)
-                    .value(eplStr)
+                    .value(StringValue.builder().value(eplStr).build())
                     .build();
             List<Attribute> translationAttributes = List.of(eplAttr);
 
