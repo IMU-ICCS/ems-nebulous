@@ -801,7 +801,7 @@ public class RuleGenerator implements InitializingBean {
         String view = getEplValueFromSubfeatures(p);
         if (StringUtils.isNotBlank(view)) {
             sb.append(view);
-            return;
+//            return;
         }
 
         // Default view processing
