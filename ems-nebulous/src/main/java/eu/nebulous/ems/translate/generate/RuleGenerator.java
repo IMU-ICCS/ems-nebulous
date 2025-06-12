@@ -693,7 +693,9 @@ public class RuleGenerator implements InitializingBean {
     private boolean groupingMustBeBeforeSizeOrTimeView(WindowProcessing windowProcessing) {
         String eplView = getEplValueFromSubfeatures(windowProcessing);
         log.debug("RuleGenerator.groupingMustBeBeforeSizeOrTimeView: processing={}, epl-value={}", windowProcessing.getName(), eplView);
-        boolean result = StringUtils.isBlank(eplView) || StringUtils.containsIgnoreCase(eplView, "groupwin");
+        boolean result = StringUtils.isBlank(eplView)
+                || StringUtils.containsIgnoreCase(eplView, "groupwin")
+                || StringUtils.containsIgnoreCase(eplView, "unique");
         log.debug("RuleGenerator.groupingMustBeBeforeSizeOrTimeView: processing={}, result={}", windowProcessing.getName(), result);
         return result;
     }
