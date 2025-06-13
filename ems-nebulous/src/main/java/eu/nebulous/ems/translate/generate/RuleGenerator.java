@@ -609,7 +609,7 @@ public class RuleGenerator implements InitializingBean {
 
     private static String getEplValueFromSubfeatures(Feature feature) {
         List<Feature> subFeaturesList = feature.getSubFeatures();
-        if (subFeaturesList==null || subFeaturesList.size()==0) return null;
+        if (subFeaturesList==null || subFeaturesList.isEmpty()) return null;
         String result = feature.getSubFeatures().stream()
                 .peek(p->log.trace("RuleGenerator.getEplViewFromSubfeatures(): ..... feature--BEFORE-FILTER: {}", p.getName()))
                 .filter(f -> TRANSLATION_CONFIG.equals(f.getName()))
@@ -656,27 +656,34 @@ public class RuleGenerator implements InitializingBean {
 
         // Process 'groupwin' window group processings
         if (win.getProcessings()!=null) {
+            log.debug("RuleGenerator._generateWindowClause(): Window '{}' applying grouping processings before size/time win. view...", win.getName());
             win.getProcessings().stream()
                     .filter(p -> p.getProcessingType() == WindowProcessingType.GROUP)
                     .filter(this::groupingMustBeBeforeSizeOrTimeView)
+                    .peek(p -> log.trace("RuleGenerator._generateWindowClause():   -- {} processing (BEFORE S/T view): {} -- criteria: {}", p.getProcessingType(), p.getName(), p.getGroupingCriteria()))
                     .forEach(p -> _processGroupWindowProcessing(sb, p));
         }
 
         // Process 'time/size' window specifications
+        log.debug("RuleGenerator._generateWindowClause(): Window '{}' adding size/time win. view...", win.getName());
         _processSizeOrTimeView(sb, win);
 
         // Process 'non-groupwin' window group processings
         if (win.getProcessings()!=null) {
+            log.debug("RuleGenerator._generateWindowClause(): Window '{}' applying grouping processings after size/time win. view...", win.getName());
             win.getProcessings().stream()
                     .filter(p -> p.getProcessingType() == WindowProcessingType.GROUP)
                     .filter(this::groupingMustBeAfterSizeOrTimeView)
+                    .peek(p -> log.trace("RuleGenerator._generateWindowClause():   -- {} processing (AFTER S/T view): {} -- criteria: {}", p.getProcessingType(), p.getName(), p.getGroupingCriteria()))
                     .forEach(p -> _processGroupWindowProcessing(sb, p));
         }
 
         // Process window sort and rank processings
         if (win.getProcessings()!=null) {
+            log.debug("RuleGenerator._generateWindowClause(): Window '{}' executing osrt and rank processings...", win.getName());
             win.getProcessings().stream()
                     .filter(p -> p.getProcessingType() == WindowProcessingType.SORT || p.getProcessingType() == WindowProcessingType.RANK)
+                    .peek(p -> log.trace("RuleGenerator._generateWindowClause():   -- {} processing: {} -- criteria: {}", p.getProcessingType(), p.getName(), p.getRankingCriteria()))
                     .forEach(p -> {
                         if (p.getProcessingType() == WindowProcessingType.SORT)
                             _processSortWindowProcessing(sb, p);
