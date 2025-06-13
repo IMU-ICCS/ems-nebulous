@@ -802,12 +802,18 @@ public class RuleGenerator implements InitializingBean {
         // Get view from translation overriding sub-feature
         String view = getEplValueFromSubfeatures(p);
         if (StringUtils.isNotBlank(view)) {
+            if (! StringUtils.startsWithAny(view.trim(), ".")) {
+                sb.append( "." );
+            }
             sb.append(view);
-//            return;
+            if (StringUtils.endsWithAny(view.trim(), ")", closeView))
+                return;
+            view = "";
+            openView = "";
         }
 
         // Default view processing
-        if (criteriaList!=null && criteriaList.size()>0) {
+        if (criteriaList!=null && ! criteriaList.isEmpty()) {
             if (StringUtils.isBlank(view)) {
                 view = openView;
             } else
@@ -819,7 +825,7 @@ public class RuleGenerator implements InitializingBean {
 
             // Add view opening
             sb.append(view);
-            if (!view.trim().endsWith("(") && !view.trim().endsWith(",")) sb.append("(");
+            if (! view.trim().endsWith("(") && ! view.trim().endsWith(",")) sb.append("(");
 
             final boolean[] first = {true};
             criteriaList.forEach(c->{
