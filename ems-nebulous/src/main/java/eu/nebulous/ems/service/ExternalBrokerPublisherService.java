@@ -103,6 +103,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 		// Get application id
 		applicationId = translationContext.getAppId();
+		if (StringUtils.isBlank(applicationId)) applicationId = null;
 
 		// Get Top-Level topics (i.e. those at GLOBAL grouping)
 		Map.Entry<String, Set<String>> tmp = translationContext.getG2T().entrySet().stream()
@@ -197,8 +198,8 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 	private Map getMessageAsMap(ActiveMQMessage amqMessage) throws JMSException {
         return switch (amqMessage) {
-            case ActiveMQTextMessage textMessage -> EventMap.parseEventMap(textMessage.getText());
-            case ActiveMQObjectMessage objectMessage -> EventMap.parseEventMap(objectMessage.getObject().toString());
+            case ActiveMQTextMessage textMessage -> EventMap.parseMap(textMessage.getText());
+            case ActiveMQObjectMessage objectMessage -> EventMap.parseMap(objectMessage.getObject().toString());
             case ActiveMQMapMessage mapMessage -> mapMessage.getContentMap();
             case null, default -> null;
         };
@@ -246,6 +247,8 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		// If 'externalBrokerConnectionString' is set use BrokerClient to send message
         try {
 			//log.trace("ExternalBrokerPublisherService: publishMessage: Using AMQP connection string: {}", externalBrokerConnectionString);
+			if (applicationId!=null)
+				properties.put("application", applicationId);
             brokerClient.publishEvent(externalBrokerConnectionString, publisher.address(), BrokerClient.MESSAGE_TYPE.OBJECT, body, properties);
         } catch (JMSException e) {
             log.warn("ExternalBrokerPublisherService: publishMessage: Failed to send event: ", e);
