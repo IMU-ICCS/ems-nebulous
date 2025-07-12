@@ -50,8 +50,8 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 	private final NameNormalization nameNormalization;
 	private final Map<String, String> additionalTopicsMap = new HashMap<>();
 	private final Gson gson = new Gson();
-	private final String externalBrokerConnectionString;
-	private final BrokerClient brokerClient = new BrokerClient(PasswordUtil.getInstance());
+//	private final String externalBrokerConnectionString;
+//	private final BrokerClient brokerClient = new BrokerClient(PasswordUtil.getInstance());
 	private Map<String, Publisher> publishersMap = Map.of();
 	private String applicationId;
 	private Set<String> sloSet;
@@ -65,7 +65,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		this.nameNormalization = nameNormalization;
 
 		// Initialize external broker connection string, and BrokerClient
-		String EXTERNAL_CONN_STR_FMT    = StringUtils.firstNonBlank(properties.getBrokerConnectionStringFormatter(), "amqp://%s:%s");
+		/*String EXTERNAL_CONN_STR_FMT    = StringUtils.firstNonBlank(properties.getBrokerConnectionStringFormatter(), "amqp://%s:%s");
 		String EXTERNAL_BROKER_ADDRESS  = getConfig("EXTERNAL_BROKER_ADDRESS", properties.getBrokerAddress());
 		String EXTERNAL_BROKER_PORT     = getConfig("EXTERNAL_BROKER_PORT", Integer.toString(properties.getBrokerPort()));
 		String EXTERNAL_BROKER_USERNAME = getConfig("EXTERNAL_BROKER_USERNAME", properties.getBrokerUsername());
@@ -75,15 +75,15 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		if (StringUtils.isNoneBlank(EXTERNAL_BROKER_USERNAME)) {
 			this.brokerClient.getClientProperties().setBrokerUsername(EXTERNAL_BROKER_USERNAME);
 			this.brokerClient.getClientProperties().setBrokerPassword(EXTERNAL_BROKER_PASSWORD);
-		}
+		}*/
 	}
 
-	private String getConfig(String envVarName, String defaultValue) {
+	/*private String getConfig(String envVarName, String defaultValue) {
 		String value = System.getenv(envVarName);
 		if (StringUtils.isEmpty(value))
 			value = defaultValue;
 		return value;
-	}
+	}*/
 
 	public void addAdditionalTopic(@NonNull String topic, @NonNull String externalBrokerTopic) {
 		if (StringUtils.isNotBlank(topic) && StringUtils.isNotBlank(externalBrokerTopic))
@@ -232,11 +232,17 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 					conn:  {}
 					body:  {}
 					props: {}
-				""", publisher.address(), externalBrokerConnectionString, body, properties);
+				""", publisher.address(), /*externalBrokerConnectionString*/null, body, properties);
 
+        // Put properties into the message body
 		if (properties==null) properties = Map.of();
+        body.putAll(properties);
 
-		// Fallback to EXN publisher to send message
+        // Send message to external broker
+        publisher.send(body, applicationId, properties);
+
+        /*
+        // Fallback to EXN publisher to send message
 		if (StringUtils.isBlank(externalBrokerConnectionString)) {
 			//XXX: BUG of EXN lib: It does not include properties in the message sent
 			log.warn("ExternalBrokerPublisherService: publishMessage: Falling back to EXN publisher to publish to External Broker. Event properties will not be included");
@@ -249,10 +255,11 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 			//log.trace("ExternalBrokerPublisherService: publishMessage: Using AMQP connection string: {}", externalBrokerConnectionString);
 			if (applicationId!=null)
 				properties.put("application", applicationId);
+            if (body instanceof EventMap em) body = new LinkedHashMap<>(em);
             brokerClient.publishEvent(externalBrokerConnectionString, publisher.address(), BrokerClient.MESSAGE_TYPE.OBJECT, body, properties);
         } catch (JMSException e) {
             log.warn("ExternalBrokerPublisherService: publishMessage: Failed to send event: ", e);
 			throw e;
-        }
+        }*/
     }
 }
