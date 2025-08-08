@@ -14,11 +14,12 @@
     <name>Event Management System for Nebulous</name>
     <groupId>gr.iccs.imu.ems</groupId>
     <artifactId>ems-nebulous</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>../ems-main/ems-core</module>
+        <!--<module>ems-main/ems-core</module>-->
         <module>ems-nebulous</module>
     </modules>
 
