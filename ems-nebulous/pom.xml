@@ -27,7 +27,7 @@
         <maven-compiler.version>3.13.0</maven-compiler.version>
 
         <!-- EMS versions -->
-        <ems.version>7.0.0-SNAPSHOT</ems.version>
+        <ems.version>8.0.0-SNAPSHOT</ems.version>
 
         <!-- Spring Boot versions -->
         <spring.version>6.2.12</spring.version>
