@@ -8,7 +8,6 @@
 
 package eu.nebulous.ems.boot;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.nebulous.ems.translate.NebulousEmsTranslatorProperties;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.FileReader;

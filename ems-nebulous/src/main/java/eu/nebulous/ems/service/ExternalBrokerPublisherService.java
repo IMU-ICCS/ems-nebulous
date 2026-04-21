@@ -8,18 +8,15 @@
 
 package eu.nebulous.ems.service;
 
-import com.google.gson.Gson;
 import eu.nebulous.ems.translate.NameNormalization;
 import eu.nebulouscloud.exn.core.Publisher;
 import gr.iccs.imu.ems.brokercep.BrokerCepConsumer;
 import gr.iccs.imu.ems.brokercep.BrokerCepService;
 import gr.iccs.imu.ems.brokercep.event.EventMap;
-import gr.iccs.imu.ems.brokerclient.BrokerClient;
 import gr.iccs.imu.ems.control.plugin.PostTranslationPlugin;
 import gr.iccs.imu.ems.control.util.TopicBeacon;
 import gr.iccs.imu.ems.translate.Grouping;
 import gr.iccs.imu.ems.translate.TranslationContext;
-import gr.iccs.imu.ems.util.PasswordUtil;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
@@ -32,6 +29,7 @@ import org.apache.activemq.command.ActiveMQTextMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -49,7 +47,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 	private final BrokerCepService brokerCepService;
 	private final NameNormalization nameNormalization;
 	private final Map<String, String> additionalTopicsMap = new HashMap<>();
-	private final Gson gson = new Gson();
+	private final ObjectMapper mapper;
 //	private final String externalBrokerConnectionString;
 //	private final BrokerClient brokerClient = new BrokerClient(PasswordUtil.getInstance());
 	private Map<String, Publisher> publishersMap = Map.of();
@@ -58,11 +56,12 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 
 	protected ExternalBrokerPublisherService(ExternalBrokerServiceProperties properties,
 											 TaskScheduler taskScheduler, BrokerCepService brokerCepService,
-											 NameNormalization nameNormalization)
+											 NameNormalization nameNormalization, ObjectMapper mapper)
 	{
 		super(properties, taskScheduler);
 		this.brokerCepService = brokerCepService;
 		this.nameNormalization = nameNormalization;
+		this.mapper = mapper;
 
 		// Initialize external broker connection string, and BrokerClient
 		/*String EXTERNAL_CONN_STR_FMT    = StringUtils.firstNonBlank(properties.getBrokerConnectionStringFormatter(), "amqp://%s:%s");
@@ -210,7 +209,7 @@ public class ExternalBrokerPublisherService extends AbstractExternalBrokerServic
 		if (! properties.isEnabled()) return false;
 		Publisher publisher = publishersMap.get(topic);
 		if (publisher!=null)
-			publishMessage(publisher, gson.fromJson(bodyStr, Map.class));
+			publishMessage(publisher, mapper.convertValue(bodyStr, Map.class));
 		return publisher!=null;
 	}
 

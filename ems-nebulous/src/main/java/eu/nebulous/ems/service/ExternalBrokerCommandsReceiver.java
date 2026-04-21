@@ -9,7 +9,6 @@
 
 package eu.nebulous.ems.service;
 
-import com.google.gson.Gson;
 import gr.iccs.imu.ems.common.command.Command;
 import gr.iccs.imu.ems.common.command.CommandProcessor;
 import gr.iccs.imu.ems.common.command.CommandProcessorProperties;
@@ -20,6 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class ExternalBrokerCommandsReceiver implements InitializingBean {
     private final ApplicationContext applicationContext;
     private final CommandProcessor commandProcessor;
     private final CommandProcessorProperties properties;
-    private final Gson gson;
+    private final ObjectMapper mapper;
     private Map<String, String> config;
 
     @Override
@@ -94,7 +95,8 @@ public class ExternalBrokerCommandsReceiver implements InitializingBean {
             log.debug("BrokerCommandsReceiver: Sending command result: Command: {} -- Result: {}", command, resultsSer);
             HashMap<String, Object> event = new HashMap<>();
             //event.put("command", command.toString());
-            event.put("command", gson.fromJson(gson.toJson(command), Map.class));
+            Map<String, Object> map = mapper.convertValue(command, new TypeReference<>() {});
+            event.put("command", map);
             event.put("results-topic", resultsSer);
             if (StringUtils.isNotBlank(command.getRef()))
                 event.put("ref", command.getRef());

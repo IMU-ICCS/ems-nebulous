@@ -27,7 +27,7 @@ public class EmsBootProperties implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.info("{}", this);
+        log.debug("{}", this);
     }
 
     private boolean enabled;

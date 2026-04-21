@@ -1,7 +1,5 @@
 package eu.nebulous.ems.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import eu.nebulous.ems.boot.EmsBootProperties;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.platform.engine.TestExecutionResult;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
