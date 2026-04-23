@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
+import static gr.iccs.imu.ems.api.EmsConstant.EMS_PROPERTIES_PREFIX;
 
 @Slf4j
 @Data

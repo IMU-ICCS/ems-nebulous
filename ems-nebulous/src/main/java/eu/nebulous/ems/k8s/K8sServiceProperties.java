@@ -18,7 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import java.time.Duration;
 import java.util.List;
 
-import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
+import static gr.iccs.imu.ems.api.EmsConstant.EMS_PROPERTIES_PREFIX;
 
 @Slf4j
 @Data

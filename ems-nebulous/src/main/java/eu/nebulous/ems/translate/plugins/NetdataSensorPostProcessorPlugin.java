@@ -8,8 +8,8 @@
 
 package eu.nebulous.ems.translate.plugins;
 
+import gr.iccs.imu.ems.api.EmsConstant;
 import gr.iccs.imu.ems.translate.model.Sensor;
-import gr.iccs.imu.ems.util.EmsConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;

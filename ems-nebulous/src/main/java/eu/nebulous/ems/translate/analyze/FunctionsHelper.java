@@ -8,9 +8,9 @@
 
 package eu.nebulous.ems.translate.analyze;
 
+import gr.iccs.imu.ems.api.comm.FunctionDefinition;
 import gr.iccs.imu.ems.brokercep.cep.MathUtil;
 import gr.iccs.imu.ems.translate.TranslationContext;
-import gr.iccs.imu.ems.util.FunctionDefinition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

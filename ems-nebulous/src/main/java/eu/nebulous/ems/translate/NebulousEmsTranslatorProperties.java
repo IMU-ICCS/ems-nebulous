@@ -8,8 +8,8 @@
 
 package eu.nebulous.ems.translate;
 
+import gr.iccs.imu.ems.api.EmsConstant;
 import gr.iccs.imu.ems.translate.Grouping;
-import gr.iccs.imu.ems.util.EmsConstant;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;

@@ -15,7 +15,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-import static gr.iccs.imu.ems.util.EmsConstant.EMS_PROPERTIES_PREFIX;
+import static gr.iccs.imu.ems.api.EmsConstant.EMS_PROPERTIES_PREFIX;
 
 @Slf4j
 @Data

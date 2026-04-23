@@ -1,7 +1,7 @@
 package eu.nebulous.ems.translate.plugins;
 
+import gr.iccs.imu.ems.api.Plugin;
 import gr.iccs.imu.ems.translate.model.Sensor;
-import gr.iccs.imu.ems.util.Plugin;
 
 import java.util.List;
 import java.util.Map;
